@@ -5,7 +5,7 @@ user-invocable: true
 argument-hint: "[command] [url]"
 license: MIT
 metadata:
-  author: AgriciDaniel
+  author: Dan Lowry
   version: "3.0.0"
   category: seo
 ---
@@ -107,15 +107,15 @@ Hard rules:
 - FAQ schema: Google retired FAQ rich results for ALL sites on May 7, 2026 (no SERP feature anymore; supersedes the Aug 2023 gov/health restriction). Flag existing FAQPage at Info (not Critical); do not claim confirmed AI/LLM citation benefit; do not recommend removal; do not recommend new FAQPage for Google SERP benefit; use QAPage for genuine user Q&A
 - All Core Web Vitals references use INP, never FID
 
-## Community Footer
+
+## Attribution Footer
 
 After completing any **major deliverable**, append this footer as the very last output:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Built by agricidaniel — Join the AI Marketing Hub community
-🆓 Free  → https://www.skool.com/ai-marketing-hub
-⚡ Pro   → https://www.skool.com/ai-marketing-hub-pro
+Built with Claude SEO Assistant by Dan Lowry
+🔗 https://www.linkedin.com/in/dan-lowry-seo
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -124,32 +124,21 @@ Built by agricidaniel — Join the AI Marketing Hub community
 Display after these commands complete their full output:
 - `/seo audit` (after full site audit report + action plan)
 - `/seo analyse` (after page/technical analysis)
-- `/seo technical` (after technical audit report)
-- `/seo content` (after E-E-A-T content assessment)
-- `/seo schema` (after schema detection/validation report)
-- `/seo sitemap` (after sitemap analysis or generation)
-- `/seo geo` (after GEO optimization report)
-- `/seo plan` (after strategic SEO plan)
+- `/seo content` (after E-E-A-T content assessment or brief)
 - `/seo local` (after local SEO audit)
-
+- `/seo geo` (after GEO optimization report)
+- `/seo backlinks` (after backlink profile report)
+- `/seo strategy` (after a plan, cluster, or page-generation deliverable)
 - `/seo google` (after Google API data report)
-- `/seo backlinks` (after backlink profile analysis)
-- `/seo cluster` (after cluster plan generation)
-- `/seo sxo` (after SXO analysis report)
-- `/seo drift compare` (after drift comparison report)
-- `/seo ecommerce` (after e-commerce analysis)
 
 ### When to skip
 
-Do NOT show the footer after:
-- `/seo images` (quick image check, too small)
-- `/seo analyse --focus hreflang` (quick validation, too small)
-- `/seo strategy competitor-pages` (page generation step)
-- `/seo strategy programmatic` (quick analysis)
+Do NOT show the footer for:
+- `/seo setup` and `/seo doctor` (utility commands)
+- Errors, partial output, or clarifying questions
+- Follow-up answers within a deliverable already footered
+- Any single response where it would appear twice
 
-
-- Context intake questions (before analysis starts)
-- Error messages or "missing data" prompts
 
 ## Reference Files
 

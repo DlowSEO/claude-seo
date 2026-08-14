@@ -5,7 +5,7 @@ user-invocable: true
 argument-hint: "[url | business-name]"
 license: MIT
 metadata:
-  author: AgriciDaniel
+  author: Dan Lowry
   version: "3.0.0"
   category: seo
 ---

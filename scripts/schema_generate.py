@@ -35,9 +35,9 @@ Usage::
 
     python scripts/schema_generate.py profile \\
         --name "Daniel Agrici" \\
-        --url https://agricidaniel.com/about \\
-        --same-as https://github.com/AgriciDaniel \\
-                  https://twitter.com/agricidaniel \\
+        --url https://example.com/about \\
+        --same-as https://github.com/DlowSEO \\
+                  https://twitter.com/yourhandle \\
         --knows-about "SEO" "Schema markup" "Core Web Vitals"
 
 All generators emit JSON-LD with ``@context: https://schema.org`` and

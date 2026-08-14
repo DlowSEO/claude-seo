@@ -1,4 +1,4 @@
-# CLAUDE.md — Contributor Guide
+# CLAUDE.md — Claude SEO Assistant Contributor Guide
 
 ## Architecture
 
@@ -29,4 +29,4 @@ features and need pruning (see TODO below).
 
 - Prune/adapt inherited tests referencing removed skills
 - Re-record demo media
-- Decide final repo name + update install.sh REPO_URL
+- Prune remaining DataForSEO references if the extension is never revived

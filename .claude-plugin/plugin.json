@@ -1,14 +1,14 @@
 {
   "name": "claude-seo",
-  "version": "2.2.4",
-  "description": "Comprehensive SEO analysis plugin for Claude Code. 25 sub-skills (21 core + 1 orchestrator + 1 framework + 2 extension mirrors) and 18 sub-agents cover technical SEO, content quality, schema, sitemaps, Core Web Vitals, local SEO, backlinks, AI/GEO, ecommerce, hreflang, SXO, clustering, drift monitoring, and Google APIs. Includes optional MCP extensions, SPA-aware rendering, portability, and hardened SSRF/DNS-rebinding safe fetchers.",
+  "version": "3.0.0",
+  "description": "Simplified SEO analysis plugin for Claude Code. 8 commands, 8 skills, 8 agents. Full audits, page/technical analysis, E-E-A-T content, local SEO, GEO/AI search, backlinks, and strategic planning. Extensions are opt-in; nothing ships by default. A cleaner fork of AgriciDaniel/claude-seo.",
   "author": {
-    "name": "AgriciDaniel",
-    "url": "https://github.com/AgriciDaniel"
+    "name": "Dan Lowry",
+    "url": "https://github.com/DlowSEO"
   },
   "license": "MIT",
-  "homepage": "https://claude-seo.md",
-  "repository": "https://github.com/AgriciDaniel/claude-seo",
+  "homepage": "https://github.com/DlowSEO/claude-seo",
+  "repository": "https://github.com/DlowSEO/claude-seo",
   "keywords": [
     "seo",
     "technical-seo",

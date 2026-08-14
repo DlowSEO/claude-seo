@@ -1,6 +1,6 @@
-# Claude SEO — Simplified
+# Claude SEO Assistant
 
-A simpler, cleaner fork of [claude-seo](https://github.com/AgriciDaniel/claude-seo).
+A simplified SEO toolkit for Claude Code. A cleaner fork of [claude-seo](https://github.com/AgriciDaniel/claude-seo) by Daniel Agrici (MIT).
 Same analysis depth, a fraction of the surface area.
 
 **8 commands. 8 skills. 8 agents. Zero bundled extensions.**
@@ -14,7 +14,7 @@ their source material as internal modules).
 ## Install
 
 ```bash
-git clone --depth 1 <your-repo-url>.git
+git clone --depth 1 https://github.com/DlowSEO/claude-seo.git
 bash claude-seo/install.sh
 ```
 
@@ -41,6 +41,6 @@ competitor-pages, ecommerce → `strategy`
 
 **Cut** — flow, sxo, drift, image-gen, and all bundled extensions. The
 extension mechanism remains; nothing installs by default. These features
-live on in the [original repo](https://github.com/AgriciDaniel/claude-seo).
+live on in the [original repo](https://github.com/DlowSEO/claude-seo).
 
 MIT licensed, like the original.

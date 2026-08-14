@@ -13,7 +13,7 @@ canonical reference for how work flows between them.
         │                             │
         ▼                             ▼
   origin (public)              aimh (private)
-  AgriciDaniel/claude-seo      AI-Marketing-Hub/claude-seo
+  DlowSEO/claude-seo      AI-Marketing-Hub/claude-seo
   - Release destination        - Daily development
   - main = released history    - main = synced with public
   - Tags = release history     - v2 = active development
@@ -68,7 +68,7 @@ When `v2` (or whatever branch holds the next release) is ready to go public:
 4. **Create the GitHub release** on the public repo only.
    ```bash
    gh release create v2.0.1 \
-     --repo AgriciDaniel/claude-seo \
+     --repo DlowSEO/claude-seo \
      --notes-from-tag \
      --verify-tag
    ```
@@ -106,11 +106,11 @@ one file on one commit:
 
 | File | `aimh` (private) | `origin` (public) |
 |---|---|---|
-| `.claude-plugin/marketplace.json` `name` | `ai-marketing-hub-claude-seo` | `agricidaniel-claude-seo` |
-| `.claude-plugin/marketplace.json` `owner.name` | `AI Marketing Hub` | `AgriciDaniel` |
+| `.claude-plugin/marketplace.json` `name` | `ai-marketing-hub-claude-seo` | `dlowseo-claude-seo` |
+| `.claude-plugin/marketplace.json` `owner.name` | `AI Marketing Hub` | `DlowSEO` |
 
 Everything else (including `README.md`) is shared and public-first: the
-install block defaults to `AgriciDaniel/claude-seo`, with a Pro swap-note that
+install block defaults to `DlowSEO/claude-seo`, with a Pro swap-note that
 names the private slug. This keeps the public repo free of `ai-marketing-hub`
 slugs while keeping the README a single shared file.
 

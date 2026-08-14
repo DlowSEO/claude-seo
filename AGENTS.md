@@ -179,6 +179,6 @@ extensions/                # 8 MCP extensions: DataForSEO, Firecrawl, Banana, Ah
 
 ## Credits
 
-Created by [@AgriciDaniel](https://github.com/AgriciDaniel).
+Maintained by Dan Lowry ([@DlowSEO](https://github.com/DlowSEO)). Forked from [AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo) (MIT).
 v1.9.0 community contributions by Lutfiya Miller, Chris Muller, Florian Schmitz,
 Dan Colta, and Matej Marjanovic. See [CONTRIBUTORS.md](CONTRIBUTORS.md).

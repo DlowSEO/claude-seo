@@ -5,7 +5,7 @@ user-invocable: true
 argument-hint: "[plan <type> | cluster <seed> | programmatic | competitor-pages | ecommerce <url>]"
 license: MIT
 metadata:
-  author: AgriciDaniel
+  author: Dan Lowry
   version: "3.0.0"
   category: seo
 ---

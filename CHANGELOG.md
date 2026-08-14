@@ -163,7 +163,7 @@ Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency c
 - **Unlighthouse and Ahrefs extension invocations.** The Unlighthouse extension called a non-existent npm package (`unlighthouse-cli`); it now uses `unlighthouse@0.13.5`. The Ahrefs extension is pinned to `@ahrefs/mcp@0.0.11` and invokes the package's real `mcp` binary.
 - **FLOW prompt dead links.** 82 links across the 41 FLOW prompt files pointed at the upstream folder layout that does not exist in this plugin. `sync_flow.py` now rewrites them to the flattened layout on every sync, and the existing files were repaired.
 - **sync_flow offline crash.** `--dry-run` raised an uncaught network error when GitHub was unreachable; it now exits cleanly with an actionable message.
-- **Install slug and stale figures.** Corrected the marketplace slug in the install docs to `claude-seo@agricidaniel-claude-seo`, the `CITATION.cff` release date, the README test count (326), the AGENTS.md script count (50), and the README FAQ guidance.
+- **Install slug and stale figures.** Corrected the marketplace slug in the install docs to `claude-seo@dlowseo-claude-seo`, the `CITATION.cff` release date, the README test count (326), the AGENTS.md script count (50), and the README FAQ guidance.
 
 ### Added
 
@@ -670,7 +670,7 @@ release. v2 will be a separate design conversation:
 ## [1.6.1] - 2026-03-27
 
 ### Added
-- **Marketplace distribution**: Created `.claude-plugin/marketplace.json` for plugin marketplace submission. Users can now install via `/plugin marketplace add AgriciDaniel/claude-seo`
+- **Marketplace distribution**: Created `.claude-plugin/marketplace.json` for plugin marketplace submission. Users can now install via `/plugin marketplace add DlowSEO/claude-seo`
 - **Agent model and turn limits**: All 11 subagents now specify `model: sonnet` and `maxTurns` (15-25) for predictable cost and behavior
 - **Plugin keywords**: Added 12 discovery keywords to `plugin.json` for marketplace searchability
 
@@ -774,7 +774,7 @@ release. v2 will be a separate design conversation:
 - **Custom User-Agent support**: Added `--user-agent` flag to `fetch_page.py` for configurable UA strings
 
 ### Added
-- **install.cat support**: Added alternative install method via `curl install.cat/AgriciDaniel/claude-seo | bash` to README (#10)
+- **install.cat support**: Added alternative install method via `curl install.cat/DlowSEO/claude-seo | bash` to README (#10)
 
 ---
 

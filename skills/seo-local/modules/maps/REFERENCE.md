@@ -13,8 +13,8 @@ argument-hint: "[command] [url|keyword|location]"
 license: MIT
 compatibility: "DataForSEO MCP for Tier 1+, Google Maps API for Tier 2"
 metadata:
-  author: AgriciDaniel
-  version: "2.2.4"
+  author: Dan Lowry
+  version: "3.0.0"
   category: seo
 ---
 

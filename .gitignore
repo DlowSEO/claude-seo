@@ -1,8 +1,7 @@
 .venv/
 ms-playwright/
-test-install/
-.python-version
 runtime-state.json
 __pycache__/
 *.pyc
+*-audit/
 .DS_Store

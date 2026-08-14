@@ -12,9 +12,9 @@ user-invocable: true
 argument-hint: "<seed-keyword or url>"
 license: MIT
 metadata:
-  author: AgriciDaniel
+  author: Dan Lowry
   original_author: "Lutfiya Miller (Pro Hub Challenge Winner)"
-  version: "2.2.4"
+  version: "3.0.0"
   category: seo
 ---
 
@@ -80,7 +80,7 @@ the full algorithm.
 - Skip pairs where both are long-tail variants of the same head term (assume same cluster)
 
 **DataForSEO integration:** If DataForSEO MCP is available, use `serp_organic_live_advanced`
-instead of WebSearch for SERP data. Run `claude-seo run dataforseo_costs.py check serp_organic_live_advanced --count N`
+instead of WebSearch for SERP data. Run `claude-seo run dataforseo_costs.py check serp_organic_live_advanced --count N` (requires the DataForSEO extension; otherwise use WebSearch)
 before each batch. If `"status": "needs_approval"`, show cost estimate and ask user.
 If `"status": "blocked"`, fall back to WebSearch.
 

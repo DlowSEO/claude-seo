@@ -5,8 +5,8 @@ user-invocable: true
 argument-hint: "[url]"
 license: MIT
 metadata:
-  author: AgriciDaniel
-  version: "2.2.4"
+  author: Dan Lowry
+  version: "3.0.0"
   category: seo
 ---
 
@@ -18,21 +18,19 @@ metadata:
 2. **Detect business type**: analyze homepage signals per seo orchestrator
 3. **Crawl site**: follow internal links up to 500 pages, respect robots.txt
 4. **Delegate to subagents** (if available, otherwise run inline sequentially):
-   - `seo-technical` -- robots.txt, sitemaps, canonicals, Core Web Vitals, security headers
+   - `seo-technical` -- robots.txt, sitemaps, canonicals, schema, Core Web Vitals, security headers
    - `seo-content` -- E-E-A-T, readability, thin content, AI citation readiness
-   - `seo-schema` -- detection, validation, generation recommendations
-   - `seo-sitemap` -- structure analysis, quality gates, missing pages
    - `seo-performance` -- LCP, INP, CLS measurements
    - `seo-visual` -- screenshots, mobile testing, above-fold analysis
    - `seo-geo` -- AI crawler access, llms.txt, citability, brand mention signals
-   - `seo-local` -- GBP signals, NAP consistency, reviews, local schema, industry-specific local factors (spawn when Local Service industry detected: brick-and-mortar, SAB, or hybrid business type)
-   - `seo-maps` -- Geo-grid rank tracking, GBP audit, review intelligence, competitor radius mapping (spawn when Local Service detected AND DataForSEO MCP available)
+   - `seo-local` -- GBP signals, NAP consistency, reviews, local schema, geo-grid and review intelligence where API access allows (spawn when Local Service industry detected: brick-and-mortar, SAB, or hybrid business type)
    - `seo-google` -- CWV field data (CrUX), URL indexation (GSC), organic traffic (GA4) (spawn when Google API credentials detected via `claude-seo run google_auth.py --check`)
    - `seo-backlinks` -- Backlink profile data: DA/PA, referring domains, anchor text, toxic links (spawn when Moz or Bing API credentials detected via `claude-seo run backlinks_auth.py --check`, or always include Common Crawl domain-level metrics)
-   - `seo-cluster` -- Semantic clustering analysis (spawn when content strategy signals detected: blog, pillar pages, topic clusters)
-   - `seo-sxo` -- Search experience analysis: page-type mismatch, user stories, persona scoring (always include in full audits)
-   - `seo-drift` -- Drift analysis: compare against stored baseline (spawn when drift baseline exists for the URL via `claude-seo run drift_history.py <url>`)
-   - `seo-ecommerce` -- Product schema, marketplace intelligence (spawn when E-commerce industry detected)
+
+   Strategy work (topic clustering, programmatic pages, e-commerce product SEO) is
+   not delegated during an audit -- surface it as a recommendation to run
+   `/seo strategy` instead.
+
 5. **Score** -- aggregate into SEO Health Score (0-100)
 6. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`
 7. **Report** -- generate prioritized action plan and optional PDF/HTML report
@@ -166,7 +164,7 @@ Write `{domain}-audit/audit-data.json` with this shape so `claude-seo run google
 
 ## DataForSEO Integration (Optional)
 
-If DataForSEO MCP tools are available, spawn the `seo-dataforseo` agent alongside existing subagents to enrich the audit with live data: real SERP positions, backlink profiles with spam scores, on-page analysis (Lighthouse), business listings, and AI visibility checks (ChatGPT scraper, LLM mentions).
+If the DataForSEO extension is installed and its MCP tools are available, use them to enrich the audit with live data: real SERP positions, backlink profiles with spam scores, on-page analysis (Lighthouse), business listings, and AI visibility checks. This extension is not bundled -- skip silently when unavailable.
 
 ## Google API Integration (Optional)
 

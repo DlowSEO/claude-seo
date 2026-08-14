@@ -11,8 +11,8 @@ user-invocable: true
 argument-hint: "[url]"
 license: MIT
 metadata:
-  author: AgriciDaniel
-  version: "2.2.4"
+  author: Dan Lowry
+  version: "3.0.0"
   category: seo
 ---
 
@@ -261,29 +261,10 @@ convert input.jpg -resize 800x -quality 82 image-800.webp
 convert input.jpg -resize 1200x -quality 82 image-1200.webp
 ```
 
-### Metadata Injection (IPTC for Google Images Display)
 
-Google Images displays IPTC Creator, Credit Line, and Copyright in search results.
-This is **NOT a ranking factor** but can improve Google Images display and brand attribution.
-
-**With exiftool (preferred):**
-```bash
 # Read all metadata
 exiftool image.jpg
 
-# Inject IPTC + XMP metadata for Google Images rich results
-exiftool \
-  -IPTC:ObjectName="Product Photo Description" \
-  -IPTC:Caption-Abstract="Detailed image description" \
-  -IPTC:By-line="Brand Name Photography" \
-  -IPTC:Credit="Brand Name" \
-  -IPTC:CopyrightNotice="Copyright 2026 Brand Name" \
-  -IPTC:Source="brandname.com" \
-  -XMP:Title="Product Photo Description" \
-  -XMP:Description="Detailed image description" \
-  -XMP:Creator="Brand Name Photography" \
-  -XMP:Rights="Copyright 2026 Brand Name" \
-  image.jpg
 
 # Batch inject to all images in directory
 exiftool -overwrite_original \
@@ -319,23 +300,7 @@ https://support.google.com/merchants/answer/14743464
 
 **Audit command:**
 
-```bash
-# Audit a directory for the IPTC label (counts: missing, ai, captured, etc.)
-claude-seo run iptc_ai_label.py audit ./images/ --json
-
-# Audit a single image
-claude-seo run iptc_ai_label.py audit ./hero.webp --json
-
-# Inject the AI label into an image
-claude-seo run iptc_ai_label.py inject ./ai-hero.webp \
-    --source-type trainedAlgorithmicMedia
-
-# Other vocabulary values:
-#   compositeSynthetic               (mix of captured + AI elements)
-#   algorithmicMedia                 (created purely by algorithm, NOT from sampled training data)
-#   compositeWithTrainedAlgorithmicMedia (e.g. AI inpainting/outpainting over real media)
-#   digitalCapture                   (fully captured photograph)
-```
+_(IPTC AI-label tooling is not bundled in this build.)_
 
 **Raw exiftool equivalents** (for ad-hoc usage):
 
@@ -393,9 +358,6 @@ in cross-reference with `seo-ecommerce`.
 # Quick audit with exiftool
 exiftool -IPTC:all -XMP:all -EXIF:ImageDescription image.jpg
 
-# Batch audit - find images missing IPTC Creator
-exiftool -if 'not $IPTC:By-line' -filename *.jpg *.webp *.png
-```
 
 ### Full Optimization Pipeline
 

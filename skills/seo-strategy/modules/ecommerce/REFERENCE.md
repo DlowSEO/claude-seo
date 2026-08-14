@@ -12,11 +12,15 @@ argument-hint: "<url or keyword>"
 license: MIT
 compatibility: "Enhanced with DataForSEO Merchant API (optional)"
 metadata:
-  author: AgriciDaniel
+  author: Dan Lowry
   original_author: "Matej Marjanovic (Pro Hub Challenge)"
-  version: "2.2.4"
+  version: "3.0.0"
   category: seo
 ---
+
+> **Requires the DataForSEO extension.** Commands below (`dataforseo_*.py`) are not
+> bundled in this build. Install the extension first, or skip to the on-page
+> product-SEO sections which need no external API.
 
 # E-commerce SEO Analysis
 

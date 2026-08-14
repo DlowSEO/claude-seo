@@ -11,8 +11,8 @@ user-invocable: true
 argument-hint: "[command] [url|property]"
 license: MIT
 metadata:
-  author: AgriciDaniel
-  version: "2.2.4"
+  author: Dan Lowry
+  version: "3.0.0"
   category: seo
 ---
 

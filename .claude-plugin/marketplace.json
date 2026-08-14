@@ -1,23 +1,23 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "agricidaniel-claude-seo",
+  "name": "dlowseo-claude-seo",
   "owner": {
-    "name": "AgriciDaniel"
+    "name": "Dan Lowry"
   },
   "metadata": {
-    "description": "Comprehensive SEO analysis plugin for Claude Code. 25 sub-skills and 18 sub-agents, plus 8 optional MCP extensions (DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse). v2.2.4 adds a managed cross-platform runtime and safe sitemap discovery, and repairs GSC pagination, Bing endpoints, extension paths, Windows portability, SPA rendering, and JSON-LD extraction."
+    "description": "Simplified SEO analysis plugin for Claude Code. 8 commands, 8 skills, 8 agents. Full audits, page/technical analysis, E-E-A-T content, local SEO, GEO/AI search, backlinks, and strategic planning. Extensions are opt-in; nothing ships by default. A cleaner fork of AgriciDaniel/claude-seo."
   },
   "plugins": [
     {
       "name": "claude-seo",
       "source": "./",
-      "description": "Comprehensive SEO analysis plugin for Claude Code. 25 sub-skills and 18 sub-agents, plus 8 optional MCP extensions. v2.2.4 adds a managed cross-platform runtime and safe sitemap discovery, and repairs GSC pagination, Bing endpoints, extension paths, Windows portability, SPA rendering, JSON-LD extraction, and DataForSEO permissions.",
+      "description": "Simplified SEO analysis plugin for Claude Code. 8 commands, 8 skills, 8 agents. Full audits, page/technical analysis, E-E-A-T content, local SEO, GEO/AI search, backlinks, and strategic planning. Extensions are opt-in; nothing ships by default. A cleaner fork of AgriciDaniel/claude-seo.",
       "author": {
-        "name": "AgriciDaniel",
-        "url": "https://github.com/AgriciDaniel"
+        "name": "Dan Lowry",
+        "url": "https://github.com/DlowSEO"
       },
       "category": "marketing",
-      "homepage": "https://claude-seo.md",
+      "homepage": "https://github.com/DlowSEO/claude-seo",
       "keywords": [
         "seo",
         "technical-seo",
@@ -30,32 +30,14 @@
         "ai-search",
         "sitemap",
         "image-optimization",
-        "image-serp",
-        "google-images",
         "hreflang",
         "google-search-console",
         "pagespeed",
         "crux",
         "ga4",
         "backlinks",
-        "moz",
-        "bing-webmaster",
-        "common-crawl",
-        "backlink-verification",
-        "semantic-clustering",
         "topic-clusters",
-        "sxo",
-        "search-experience",
-        "drift-monitoring",
-        "ecommerce-seo",
-        "google-shopping",
-        "cultural-profiles",
-        "content-parity",
-        "mcp-extensions",
-        "headless-rendering",
-        "ssrf-safe-fetchers",
-        "ai-citation-optimization",
-        "synthesis-framework"
+        "ecommerce-seo"
       ]
     }
   ]
