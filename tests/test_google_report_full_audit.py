@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import os
+import runpy
 import sys
+import builtins
 from pathlib import Path
+from unittest.mock import patch
 
 
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
@@ -12,6 +15,71 @@ if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
 import google_report  # noqa: E402
+
+
+def test_module_import_is_safe_without_native_report_dependencies() -> None:
+    real_import = builtins.__import__
+
+    def unavailable(name, *args, **kwargs):
+        if name.split(".", 1)[0] in {"matplotlib", "weasyprint"}:
+            raise ImportError(f"{name} unavailable")
+        return real_import(name, *args, **kwargs)
+
+    with patch.object(builtins, "__import__", side_effect=unavailable):
+        namespace = runpy.run_path(str(Path(google_report.__file__)))
+
+    assert namespace["plt"] is None
+    assert namespace["HTML"] is None
+
+
+def test_html_report_without_chart_data_does_not_require_native_report_dependencies(
+    tmp_path: Path,
+) -> None:
+    with patch.object(google_report, "plt", None), \
+         patch.object(google_report, "np", None), \
+         patch.object(google_report, "HTML", None), \
+         patch.object(google_report, "_CHART_IMPORT_ERROR", ImportError("missing")):
+        result = google_report.generate_report(
+            "full",
+            {"summary": {"health_score": 80}},
+            "example.com",
+            tmp_path,
+            output_format="html",
+        )
+
+    assert result["error"] is None
+    assert Path(result["files"][0]).is_file()
+
+
+def test_chart_report_returns_dependency_error_at_runtime(tmp_path: Path) -> None:
+    with patch.object(google_report, "plt", None), \
+         patch.object(google_report, "np", None), \
+         patch.object(google_report, "_CHART_IMPORT_ERROR", ImportError("missing")):
+        result = google_report.generate_report(
+            "cwv-audit",
+            {"lighthouse_scores": {"performance": 90}},
+            "example.com",
+            tmp_path,
+            output_format="html",
+        )
+
+    assert result["files"] == []
+    assert "matplotlib and numpy are required" in result["error"]
+
+
+def test_pdf_report_returns_dependency_error_at_runtime(tmp_path: Path) -> None:
+    with patch.object(google_report, "HTML", None), \
+         patch.object(google_report, "_PDF_IMPORT_ERROR", ImportError("missing")):
+        result = google_report.generate_report(
+            "full",
+            {"summary": {"health_score": 80}},
+            "example.com",
+            tmp_path,
+            output_format="pdf",
+        )
+
+    assert result["files"] == []
+    assert "weasyprint is required" in result["error"]
 
 
 def test_full_audit_html_includes_summary_categories_and_roadmap(tmp_path: Path) -> None:

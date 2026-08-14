@@ -7,12 +7,12 @@ set -euo pipefail
 main() {
     SKILL_DIR="${HOME}/.claude/skills/seo"
     AGENT_DIR="${HOME}/.claude/agents"
-    REPO_URL="https://github.com/AgriciDaniel/claude-seo"
+    REPO_URL="${CLAUDE_SEO_REPO:-https://github.com/AgriciDaniel/claude-seo}"  # TODO: point at the new fork
     # Pin to a specific release tag to prevent silent updates from main.
     # This default MUST be bumped on every release. CI guard
     # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
     # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v2.2.0}"
+    REPO_TAG="${CLAUDE_SEO_TAG:-v2.2.4}"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"
@@ -20,18 +20,9 @@ main() {
     echo "════════════════════════════════════════"
     echo ""
 
-    # Check prerequisites
-    command -v python3 >/dev/null 2>&1 || { echo "✗ Python 3 is required but not installed."; exit 1; }
+    # Check prerequisites. The runtime launcher performs cross-platform Python
+    # resolution and validates the minimum supported version.
     command -v git >/dev/null 2>&1 || { echo "✗ Git is required but not installed."; exit 1; }
-
-    # Check Python version (3.10+ required)
-    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-    PYTHON_OK=$(python3 -c 'import sys; print(1 if sys.version_info >= (3, 10) else 0)')
-    if [ "${PYTHON_OK}" = "0" ]; then
-        echo "✗ Python 3.10+ is required but ${PYTHON_VERSION} was found."
-        exit 1
-    fi
-    echo "✓ Python ${PYTHON_VERSION} detected"
 
     # Create directories
     mkdir -p "${SKILL_DIR}"
@@ -39,7 +30,8 @@ main() {
 
     # Clone or update
     TEMP_DIR=$(mktemp -d)
-    trap "rm -rf ${TEMP_DIR}" EXIT
+    cleanup() { rm -rf -- "${TEMP_DIR}"; }
+    trap cleanup EXIT
 
     echo "↓ Downloading Claude SEO (${REPO_TAG})..."
     git clone --depth 1 --branch "${REPO_TAG}" "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
@@ -80,6 +72,14 @@ main() {
         cp -r "${TEMP_DIR}/claude-seo/scripts/"* "${SKILL_DIR}/scripts/"
     fi
 
+    # Copy the stable runtime launcher. Manual installs use its explicit path;
+    # plugin installs expose the repository bin/ directory automatically.
+    if [ -f "${TEMP_DIR}/claude-seo/bin/claude-seo" ]; then
+        mkdir -p "${SKILL_DIR}/bin"
+        cp "${TEMP_DIR}/claude-seo/bin/claude-seo" "${SKILL_DIR}/bin/claude-seo"
+        chmod +x "${SKILL_DIR}/bin/claude-seo"
+    fi
+
     # Copy hooks
     if [ -d "${TEMP_DIR}/claude-seo/hooks" ]; then
         mkdir -p "${SKILL_DIR}/hooks"
@@ -90,62 +90,65 @@ main() {
         echo "  Note: hook enforcement requires plugin install (/plugin install ${REPO_URL}); manual hook copy is best-effort."
     fi
 
-    # Copy extensions (optional add-ons: dataforseo, banana)
-    if [ -d "${TEMP_DIR}/claude-seo/extensions" ]; then
-        echo "=> Installing extensions..."
-        for ext_dir in "${TEMP_DIR}/claude-seo/extensions"/*/; do
-            [ -d "${ext_dir}" ] || continue
-            ext_name=$(basename "${ext_dir}")
-            # Extension skills
-            if [ -d "${ext_dir}skills" ]; then
-                for ext_skill in "${ext_dir}skills"/*/; do
-                    [ -d "${ext_skill}" ] || continue
-                    ext_skill_name=$(basename "${ext_skill}")
-                    target="${HOME}/.claude/skills/${ext_skill_name}"
-                    mkdir -p "${target}"
-                    cp -r "${ext_skill}"* "${target}/"
-                done
-            fi
-            # Extension agents
-            if [ -d "${ext_dir}agents" ]; then
-                cp -r "${ext_dir}agents/"*.md "${AGENT_DIR}/" 2>/dev/null || true
-            fi
-            # Extension references
-            if [ -d "${ext_dir}references" ]; then
-                mkdir -p "${SKILL_DIR}/extensions/${ext_name}/references"
-                cp -r "${ext_dir}references/"* "${SKILL_DIR}/extensions/${ext_name}/references/"
-            fi
-            # Extension scripts
-            if [ -d "${ext_dir}scripts" ]; then
-                mkdir -p "${SKILL_DIR}/extensions/${ext_name}/scripts"
-                cp -r "${ext_dir}scripts/"* "${SKILL_DIR}/extensions/${ext_name}/scripts/"
-            fi
-        done
-    fi
 
     # Copy requirements.txt to skill dir so users can retry later
     cp "${TEMP_DIR}/claude-seo/requirements.txt" "${SKILL_DIR}/requirements.txt" 2>/dev/null || true
+    cp "${TEMP_DIR}/claude-seo/.claude-plugin/plugin.json" "${SKILL_DIR}/runtime-plugin.json" 2>/dev/null || true
 
-    # Install Python dependencies (venv preferred, --user fallback)
-    echo "→ Installing Python dependencies..."
-    VENV_DIR="${SKILL_DIR}/.venv"
-    if python3 -m venv "${VENV_DIR}" 2>/dev/null; then
-        "${VENV_DIR}/bin/pip" install --quiet -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null && \
-            echo "  ✓ Installed in venv at ${VENV_DIR}" || \
-            echo "  ⚠  Venv pip install failed. Run: ${VENV_DIR}/bin/pip install -r ${SKILL_DIR}/requirements.txt"
-    else
-        pip install --quiet --user -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null || \
-        echo "  ⚠  Could not auto-install. Run: pip install --user -r ${SKILL_DIR}/requirements.txt"
-    fi
+    # Manual installs cannot rely on plugin bin/ PATH injection. Rewrite only
+    # exact files copied from this checkout during this install.
+    rewrite_doc() {
+        local doc="$1" temp_doc
+        temp_doc="${doc}.claude-seo-tmp"
+        sed -e 's#claude-seo run#"$HOME/.claude/skills/seo/bin/claude-seo" run#g' \
+            -e 's#claude-seo setup#"$HOME/.claude/skills/seo/bin/claude-seo" setup#g' \
+            -e 's#claude-seo doctor#"$HOME/.claude/skills/seo/bin/claude-seo" doctor#g' \
+            "${doc}" > "${temp_doc}"
+        mv "${temp_doc}" "${doc}"
+    }
+    for source_root in "${TEMP_DIR}/claude-seo/skills"/*; do
+        [ -d "${source_root}" ] || continue
+        skill_name=$(basename "${source_root}")
+        while IFS= read -r -d '' source_doc; do
+            relative_doc=${source_doc#"${source_root}/"}
+            doc="${HOME}/.claude/skills/${skill_name}/${relative_doc}"
+            [ -f "${doc}" ] && rewrite_doc "${doc}"
+        done < <(find "${source_root}" -type f -name '*.md' -print0)
+    done
+    for source_root in "${TEMP_DIR}/claude-seo/extensions"/*/skills/*; do
+        [ -d "${source_root}" ] || continue
+        skill_name=$(basename "${source_root}")
+        while IFS= read -r -d '' source_doc; do
+            relative_doc=${source_doc#"${source_root}/"}
+            doc="${HOME}/.claude/skills/${skill_name}/${relative_doc}"
+            [ -f "${doc}" ] && rewrite_doc "${doc}"
+        done < <(find "${source_root}" -type f -name '*.md' -print0)
+    done
+    for source_root in "${TEMP_DIR}/claude-seo/extensions"/*/references; do
+        [ -d "${source_root}" ] || continue
+        ext_name=$(basename "$(dirname "${source_root}")")
+        while IFS= read -r -d '' source_doc; do
+            relative_doc=${source_doc#"${source_root}/"}
+            doc="${SKILL_DIR}/extensions/${ext_name}/references/${relative_doc}"
+            [ -f "${doc}" ] && rewrite_doc "${doc}"
+        done < <(find "${source_root}" -type f -name '*.md' -print0)
+    done
+    for source_doc in "${TEMP_DIR}/claude-seo/agents"/*.md "${TEMP_DIR}/claude-seo/extensions"/*/agents/*.md; do
+        [ -f "${source_doc}" ] || continue
+        doc="${AGENT_DIR}/$(basename "${source_doc}")"
+        [ -f "${doc}" ] && rewrite_doc "${doc}"
+    done
 
-    # Optional: Install Playwright browsers (for screenshot analysis)
-    echo "→ Installing Playwright browsers (optional, for visual analysis)..."
-    if [ -f "${VENV_DIR}/bin/playwright" ]; then
-        "${VENV_DIR}/bin/python" -m playwright install chromium 2>/dev/null || \
-        echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
-    else
-        python3 -m playwright install chromium 2>/dev/null || \
-        echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
+    echo "→ Creating isolated Python runtime..."
+    set +e
+    "${SKILL_DIR}/bin/claude-seo" setup
+    runtime_status=$?
+    set -e
+    if [ "${runtime_status}" -ne 0 ] && [ "${runtime_status}" -ne 10 ]; then
+        echo "✗ Core Python runtime setup failed. Installation is incomplete." >&2
+        exit 1
+    elif [ "${runtime_status}" -eq 10 ]; then
+        echo "⚠ Core runtime installed, but Chromium setup is incomplete." >&2
     fi
 
     echo ""

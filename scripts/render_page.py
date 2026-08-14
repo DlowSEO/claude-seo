@@ -39,6 +39,7 @@ A dict with::
     headers           response headers from the main document
     redirect_chain    list of {url, status_code}
     console_errors    list of browser console error strings
+    render_diagnostics list of non-fatal render degradation messages
     render_engine     'playwright-chromium' or None
     render_ms         elapsed wall-clock for the render step
     mode_used         'rendered' or 'raw'
@@ -69,6 +70,8 @@ import re
 import sys
 import time
 from typing import Optional
+
+from bs4 import BeautifulSoup
 
 # Optional native dependencies. Each is checked lazily so callers that
 # only need raw-mode (mode='never') don't pay the import cost.
@@ -112,7 +115,7 @@ VIEWPORTS: dict[str, dict[str, int]] = {
 
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 ClaudeSEO/2.0"
+    "(KHTML, like Gecko) Chrome/150.0.7871.115 Safari/537.36 ClaudeSEO/2.0"
 )
 
 # Hydration-shell signatures. Any single match flips is_spa to True. These
@@ -129,8 +132,124 @@ _SPA_SHELL_PATTERNS = (
     'please enable javascript',
 )
 
+# Builder markers are supporting evidence only. Wix, Webflow, and Squarespace
+# can all serve complete HTML, so auto-render requires multiple same-builder
+# markers plus sparse meaningful body text.
+_BUILDER_FINGERPRINT_GROUPS = (
+    ("wix-warmup-data", "static.parastorage.com", 'content="wix.com'),
+    ("data-wf-page", "data-wf-site"),
+    ('content="squarespace', "static1.squarespace.com"),
+)
+
 _TAG_STRIP = re.compile(r"<[^>]+>")
 _WHITESPACE = re.compile(r"\s+")
+_NON_VISIBLE_STRIP = re.compile(
+    r"<(script|style|template|noscript)\b[^>]*>.*?</\1>",
+    re.IGNORECASE | re.DOTALL,
+)
+_BUILDER_SPARSE_TEXT_MAX = 400
+
+JSON_LD_MAX_BLOCKS = 50
+JSON_LD_MAX_BLOCK_BYTES = 256 * 1024
+JSON_LD_MAX_TOTAL_BYTES = 1024 * 1024
+JSON_LD_MAX_NODES = 10_000
+JSON_LD_MAX_DEPTH = 40
+
+
+def _visible_body_text(lower_html: str) -> str:
+    body_start = lower_html.find("<body")
+    body_end = lower_html.rfind("</body>")
+    if body_start == -1 or body_end <= body_start:
+        return ""
+    body = _NON_VISIBLE_STRIP.sub(" ", lower_html[body_start:body_end])
+    return _WHITESPACE.sub(" ", _TAG_STRIP.sub(" ", body)).strip()
+
+
+def _schema_types(data: object) -> tuple[list[str], bool]:
+    """Collect bounded @type values without recursive attacker-controlled calls."""
+    types: set[str] = set()
+    stack: list[tuple[object, int]] = [(data, 0)]
+    visited = 0
+    truncated = False
+    while stack:
+        value, depth = stack.pop()
+        visited += 1
+        if visited > JSON_LD_MAX_NODES or depth > JSON_LD_MAX_DEPTH:
+            truncated = True
+            break
+        if isinstance(value, dict):
+            schema_type = value.get("@type")
+            if isinstance(schema_type, str):
+                types.add(schema_type)
+            elif isinstance(schema_type, list):
+                types.update(item for item in schema_type if isinstance(item, str))
+            stack.extend((item, depth + 1) for item in value.values())
+        elif isinstance(value, list):
+            stack.extend((item, depth + 1) for item in value)
+    return sorted(types)[:100], truncated or len(types) > 100
+
+
+def _extract_json_ld(html: Optional[str], *, include_full: bool = False) -> dict:
+    """Extract full-page JSON-LD with strict block, byte, and traversal bounds."""
+    result = {
+        "block_count": 0,
+        "processed_count": 0,
+        "total_bytes": 0,
+        "truncated": False,
+        "blocks": [],
+    }
+    if not html:
+        return result
+
+    soup = BeautifulSoup(html, "html.parser")
+    scripts = [
+        script for script in soup.find_all("script")
+        if str(script.get("type", "")).strip().lower() == "application/ld+json"
+    ]
+    result["block_count"] = len(scripts)
+
+    for index, script in enumerate(scripts):
+        if index >= JSON_LD_MAX_BLOCKS:
+            result["truncated"] = True
+            break
+        raw = script.string if script.string is not None else script.get_text()
+        raw = str(raw or "").strip()
+        size_bytes = len(raw.encode("utf-8"))
+        if result["total_bytes"] + size_bytes > JSON_LD_MAX_TOTAL_BYTES:
+            result["truncated"] = True
+            break
+        result["total_bytes"] += size_bytes
+        result["processed_count"] += 1
+
+        entry = {"index": index + 1, "size_bytes": size_bytes}
+        if size_bytes > JSON_LD_MAX_BLOCK_BYTES:
+            entry.update({
+                "valid": None,
+                "error": "block exceeds the JSON-LD per-block byte limit",
+            })
+            result["truncated"] = True
+            result["blocks"].append(entry)
+            continue
+
+        try:
+            parsed = json.loads(raw)
+            types, types_truncated = _schema_types(parsed)
+            entry.update({
+                "valid": True,
+                "types": types,
+                "types_truncated": types_truncated,
+            })
+            if include_full:
+                entry["data"] = parsed
+        except (json.JSONDecodeError, RecursionError) as exc:
+            entry.update({
+                "valid": False,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+            if include_full:
+                entry["raw"] = raw
+        result["blocks"].append(entry)
+    return result
 
 
 def _is_spa(raw_html: Optional[str]) -> bool:
@@ -140,6 +259,11 @@ def _is_spa(raw_html: Optional[str]) -> bool:
     lc = raw_html.lower()
     if any(pattern in lc for pattern in _SPA_SHELL_PATTERNS):
         return True
+    visible_text = _visible_body_text(lc)
+    if len(visible_text) < _BUILDER_SPARSE_TEXT_MAX:
+        for markers in _BUILDER_FINGERPRINT_GROUPS:
+            if sum(marker in lc for marker in markers) >= 2:
+                return True
     # Very thin <body> suggests JS-rendered content even without a shell.
     # Threshold (100 chars) sits between typical SPA shells (0-50 chars of
     # body text) and minimal informational pages like example.com (~125
@@ -148,10 +272,36 @@ def _is_spa(raw_html: Optional[str]) -> bool:
     body_start = lc.find("<body")
     body_end = lc.rfind("</body>")
     if body_start != -1 and body_end > body_start:
-        body = lc[body_start:body_end]
-        text = _WHITESPACE.sub(" ", _TAG_STRIP.sub("", body)).strip()
-        if len(text) < 100:
+        if len(visible_text) < 100:
             return True
+    return False
+
+
+def _wait_for_dom_stability(page, timeout_ms: int) -> bool:  # type: ignore[no-untyped-def]
+    """Wait up to five seconds for meaningful body text and a stable DOM."""
+    budget_ms = max(250, min(timeout_ms, 5000))
+    previous = None
+    stable_samples = 0
+    elapsed_ms = 0
+    while elapsed_ms < budget_ms:
+        try:
+            signature = tuple(page.evaluate(
+                "() => ["
+                "(document.body && document.body.innerText || '').trim().length,"
+                "document.querySelectorAll('*').length"
+                "]"
+            ))
+        except Exception:
+            return False
+        if signature == previous and signature[0] >= 100:
+            stable_samples += 1
+            if stable_samples >= 2:
+                return True
+        else:
+            stable_samples = 0
+        previous = signature
+        page.wait_for_timeout(250)
+        elapsed_ms += 250
     return False
 
 
@@ -186,6 +336,7 @@ def render_page(
         "headers": {},
         "redirect_chain": [],
         "console_errors": [],
+        "render_diagnostics": [],
         "render_engine": None,
         "render_ms": None,
         "mode_used": None,
@@ -263,11 +414,21 @@ def render_page(
                 page.on("console", _on_console)
                 page.route("**/*", route_handler)
 
-                response = page.goto(
-                    norm_url, wait_until="networkidle", timeout=timeout_ms
-                )
-                # Allow late hydration (deferred islands, useEffect chains).
-                page.wait_for_timeout(500)
+                try:
+                    response = page.goto(
+                        norm_url, wait_until="domcontentloaded", timeout=timeout_ms
+                    )
+                except PlaywrightTimeout:
+                    response = None
+                    result["render_diagnostics"].append(
+                        f"DOMContentLoaded timed out after {timeout_ms}ms; "
+                        "captured the available DOM"
+                    )
+                if not _wait_for_dom_stability(page, timeout_ms):
+                    result["render_diagnostics"].append(
+                        "DOM did not reach the bounded stability threshold; "
+                        "captured the available DOM"
+                    )
 
                 result["url"] = page.url
                 result["content"] = page.content()
@@ -287,9 +448,6 @@ def render_page(
                         result["accessibility_tree"] = None
 
                 browser.close()
-        except PlaywrightTimeout:
-            result["error"] = f"playwright navigation timed out after {timeout_ms}ms"
-            return result
         except Exception as exc:
             result["error"] = f"playwright error: {exc}"
             return result
@@ -361,6 +519,13 @@ def _cli() -> None:
         action="store_true",
         help="emit a JSON summary (truncates content fields)",
     )
+    parser.add_argument(
+        "--json-ld-output",
+        help=(
+            "write bounded full JSON-LD extraction to a UTF-8 JSON file; "
+            "normal --json output contains summaries only"
+        ),
+    )
     parser.add_argument("--output", "-o", help="write HTML content to file")
     args = parser.parse_args()
 
@@ -375,8 +540,15 @@ def _cli() -> None:
         extract_accessibility=args.a11y_tree,
     )
 
+    full_content = res.get("content") or res.get("raw_content") or ""
+    if args.json_ld_output:
+        extraction = _extract_json_ld(full_content, include_full=True)
+        with open(args.json_ld_output, "w", encoding="utf-8") as fh:
+            json.dump(extraction, fh, indent=2, ensure_ascii=False)
+
     if args.json:
         summary = dict(res)
+        summary["structured_data"] = _extract_json_ld(full_content)
         # JSON-safe truncation so the CLI is usable from agents without
         # piping megabytes of HTML across stdio.
         for field, limit in (

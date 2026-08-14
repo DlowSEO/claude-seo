@@ -31,9 +31,9 @@ checks if the file contains schema markup before validating.
 """
 
 import json
+import os
 import re
 import sys
-import os
 from typing import List
 
 
@@ -112,8 +112,8 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
 
     # Check for restricted types used incorrectly.
     # FAQPage is intentionally NOT flagged: Google retired FAQ rich results for
-    # all sites (May 7, 2026), but the markup still aids AI Mode / AI Overviews
-    # entity resolution, so it is valid to ship. See skills/seo-schema/SKILL.md.
+    # all sites (May 7, 2026), but FAQPage remains a valid Schema.org type.
+    # This project makes no claim of a confirmed AI or ranking benefit.
     restricted: dict = {}
     if schema_type in restricted:
         errors.append(f"{prefix}: @type '{schema_type}' is {restricted[schema_type]}; verify site qualifies")
@@ -121,13 +121,31 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
     return errors
 
 
+def _resolve_filepath():
+    """File path from argv (exec-form template) or the stdin hook-event JSON.
+
+    Claude Code's documented hook contract delivers the event as JSON on stdin;
+    the argv template is kept for harnesses that substitute it. Whichever yields
+    an existing file wins.
+    """
+    if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
+        return sys.argv[1]
+    try:
+        if not sys.stdin.isatty():
+            raw = sys.stdin.read()
+            if raw.strip():
+                event = json.loads(raw)
+                fp = (event.get("tool_input") or {}).get("file_path")
+                if fp and os.path.isfile(fp):
+                    return fp
+    except (OSError, ValueError):
+        pass
+    return None
+
+
 def main():
-    if len(sys.argv) < 2:
-        sys.exit(0)
-
-    filepath = sys.argv[1]
-
-    if not os.path.isfile(filepath):
+    filepath = _resolve_filepath()
+    if not filepath:
         sys.exit(0)
 
     # Only validate HTML-like files

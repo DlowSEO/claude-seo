@@ -131,12 +131,12 @@ def _minimal_product() -> dict:
     }
 
 
-def test_validate_flags_missing_return_policy() -> None:
+def test_validate_warns_for_missing_return_policy_and_shipping() -> None:
     result = ev.validate(_minimal_product())
-    rules = [f["rule"] for f in result["findings"]]
-    assert "missing-return-policy" in rules
-    assert "missing-shipping-details" in rules
-    assert result["ok"] is False
+    severities = {f["rule"]: f["severity"] for f in result["findings"]}
+    assert severities["missing-return-policy"] == "Medium"
+    assert severities["missing-shipping-details"] == "Medium"
+    assert result["ok"] is True
 
 
 def test_validate_passes_when_return_policy_and_shipping_present() -> None:
@@ -209,7 +209,8 @@ def test_validate_no_product_block_at_all_fails_loudly() -> None:
 def test_validate_summary_counts_severities() -> None:
     result = ev.validate(_minimal_product())
     s = result["summary"]
-    assert s["high"] >= 2  # missing return policy + shipping
+    assert s["medium"] >= 2  # missing return policy + shipping
+    assert s["high"] == 0
     assert s["critical"] >= 0
     assert sum(s.values()) == len(result["findings"])
 
@@ -247,8 +248,8 @@ def test_deprecated_types_reference_exists_and_lists_retired_kinds() -> None:
 def test_faq_rich_results_retirement_documented() -> None:
     """FAQ rich results were fully retired on 2026-05-07 (supersedes the older
     Aug 2023 gov/health restriction). The canonical schema references must reflect
-    the retirement and point users to QAPage for genuine Q&A — while keeping
-    FAQPage as an AI/entity signal (not a Critical removal)."""
+    the retirement and point users to QAPage for genuine Q&A, without claiming
+    a confirmed AI or ranking benefit for FAQPage."""
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
@@ -267,3 +268,26 @@ def test_faq_rich_results_retirement_documented() -> None:
     assert "QAPage" in deprecated and "QAPage" in schema_types
     # Google's faqpage doc cited as primary source.
     assert "structured-data/faqpage" in deprecated
+
+
+def test_faqpage_guidance_does_not_claim_unconfirmed_benefits() -> None:
+    """Public guidance must not turn an unverified AI benefit into a claim."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    targets = [
+        root / "hooks" / "validate-schema.py",
+        root / "pdf" / "google-seo-reference.md",
+        root / "docs" / "TROUBLESHOOTING.md",
+        root / "skills" / "seo-content-brief" / "references"
+        / "page-type-templates.md",
+    ]
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in targets).lower()
+    forbidden = (
+        "still aids ai",
+        "can still aid ai",
+        "valid ai/entity signal",
+        "+ faqpage",
+    )
+    for phrase in forbidden:
+        assert phrase not in combined

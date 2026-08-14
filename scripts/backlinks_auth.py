@@ -225,7 +225,7 @@ def detect_tier() -> dict:
                 "Moz DA/PA/Spam Score (any domain)",
                 "Moz referring domains and anchors",
                 "Bing inbound links (verified sites)",
-                "Bing competitor comparison",
+                "Bing comparison between registered properties",
                 "Common Crawl domain-level graph",
                 "Backlink verification crawler",
             ],
@@ -242,7 +242,7 @@ def detect_tier() -> dict:
                 "Backlink verification crawler",
             ],
             "missing": (
-                "Add Bing Webmaster API key for competitor comparison. "
+                "Add Bing Webmaster API key for registered-property link data. "
                 "Free at https://www.bing.com/webmasters"
             ),
         }

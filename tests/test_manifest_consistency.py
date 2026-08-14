@@ -48,7 +48,7 @@ def _extract_count(text: str, unit: str) -> int:
 
 def test_plugin_json_skill_count_matches_disk():
     """plugin.json description's 'N sub-skills' claim must equal skills/ dir count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     claimed = _extract_count(plugin["description"], "sub-skills")
     actual = _count_skill_dirs()
     assert claimed == actual, (
@@ -60,13 +60,13 @@ def test_plugin_json_skill_count_matches_disk():
 
 def test_plugin_json_description_fits_registry_limit():
     """plugin.json description must stay below the Claude plugin registry limit."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     assert len(plugin["description"]) < 500
 
 
 def test_plugin_json_subagent_count_matches_disk():
     """plugin.json description's 'N sub-agents' claim must equal agents/ count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     claimed = _extract_count(plugin["description"], "sub-agents")
     actual = _count_agent_files()
     assert claimed == actual, (
@@ -78,8 +78,8 @@ def test_plugin_json_subagent_count_matches_disk():
 
 def test_marketplace_json_skill_count_matches_plugin_json():
     """marketplace.json plugin entry must claim the same skill count as plugin.json."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    marketplace = json.loads(MARKETPLACE_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    marketplace = json.loads(MARKETPLACE_JSON.read_text(encoding="utf-8"))
     plugin_count = _extract_count(plugin["description"], "sub-skills")
     market_count = _extract_count(
         marketplace["plugins"][0]["description"], "sub-skills"
@@ -93,8 +93,8 @@ def test_marketplace_json_skill_count_matches_plugin_json():
 
 def test_marketplace_json_subagent_count_matches_plugin_json():
     """marketplace.json plugin entry must claim the same sub-agent count as plugin.json."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    marketplace = json.loads(MARKETPLACE_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    marketplace = json.loads(MARKETPLACE_JSON.read_text(encoding="utf-8"))
     plugin_count = _extract_count(plugin["description"], "sub-agents")
     market_count = _extract_count(
         marketplace["plugins"][0]["description"], "sub-agents"
@@ -108,12 +108,12 @@ def test_marketplace_json_subagent_count_matches_plugin_json():
 
 def test_canonical_phrasing_in_user_visible_docs():
     """README, CLAUDE.md, AGENTS.md must reference the canonical sub-skills count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     canonical_count = _extract_count(plugin["description"], "sub-skills")
     target_phrase = f"{canonical_count} sub-skills"
     for filename in ["README.md", "CLAUDE.md", "AGENTS.md"]:
         path = REPO_ROOT / filename
-        head = "\n".join(path.read_text().splitlines()[:120])
+        head = "\n".join(path.read_text(encoding="utf-8").splitlines()[:120])
         assert target_phrase in head, (
             f"{filename} does not reference '{target_phrase}' in its first "
             f"120 lines. Update it to match plugin.json's canonical phrasing."
@@ -122,8 +122,8 @@ def test_canonical_phrasing_in_user_visible_docs():
 
 def test_version_triangulation():
     """plugin.json version must equal CITATION.cff version."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    citation_text = CITATION_CFF.read_text()
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    citation_text = CITATION_CFF.read_text(encoding="utf-8")
     citation_match = re.search(r"^version:\s*(\S+)", citation_text, re.MULTILINE)
     assert citation_match, "CITATION.cff has no 'version:' line"
     plugin_version = plugin["version"]
@@ -141,8 +141,8 @@ def test_pyproject_version_matches_plugin_json():
     1.9.8. The original triangulation test only covered CITATION.cff,
     so pyproject.toml drift slipped past CI. This guard closes that gap.
     """
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    pyproject_text = (REPO_ROOT / "pyproject.toml").read_text()
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    pyproject_text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     pyproject_match = re.search(
         r'^version\s*=\s*"([^"]+)"', pyproject_text, re.MULTILINE
     )
@@ -163,10 +163,10 @@ def test_install_scripts_default_tag_matches_plugin_version():
     Manual-install users via curl | bash got 8 versions stale. This guard
     forces the default tag to track plugin.json on every release.
     """
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     expected_tag = f"v{plugin['version']}"
 
-    sh_text = (REPO_ROOT / "install.sh").read_text()
+    sh_text = (REPO_ROOT / "install.sh").read_text(encoding="utf-8")
     sh_match = re.search(
         r'REPO_TAG="\$\{CLAUDE_SEO_TAG:-([^}]+)\}"', sh_text
     )
@@ -178,7 +178,7 @@ def test_install_scripts_default_tag_matches_plugin_version():
         f"Bump install.sh's CLAUDE_SEO_TAG default on every release."
     )
 
-    ps_text = (REPO_ROOT / "install.ps1").read_text()
+    ps_text = (REPO_ROOT / "install.ps1").read_text(encoding="utf-8")
     ps_match = re.search(r"else\s*\{\s*'([^']+)'\s*\}", ps_text)
     assert ps_match, "install.ps1 has no recognizable RepoTag default"
     ps_tag = ps_match.group(1)
@@ -204,7 +204,7 @@ def test_orchestrator_sub_skills_list_matches_disk():
     specialized" claims and the list included seo-firecrawl (extension-only). This
     guard closes that gap.
     """
-    text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text()
+    text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text(encoding="utf-8")
     section = _extract_section(text, "Sub-Skills")
     listed_list = re.findall(r"^\d+\.\s+\*\*(seo-[a-z-]+)\*\*", section, re.MULTILINE)
     assert len(listed_list) == len(set(listed_list)), (
@@ -234,7 +234,7 @@ def test_orchestrator_subagents_list_matches_disk():
     the Subagents list was missing seo-flow (file on disk) and included seo-firecrawl
     (no agent file on disk).
     """
-    text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text()
+    text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text(encoding="utf-8")
     section = _extract_section(text, "Subagents")
     listed_list = re.findall(r"^- `(seo-[a-z-]+)`", section, re.MULTILINE)
     assert len(listed_list) == len(set(listed_list)), (
@@ -279,7 +279,7 @@ def test_skill_metadata_versions_match_plugin_json():
     # Each entry: skill name -> expected literal version string.
     COMMUNITY_OVERRIDES = {"seo-content-brief": "1.0.0"}
 
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     expected_default = plugin["version"]
     errors = []
 
@@ -289,7 +289,7 @@ def test_skill_metadata_versions_match_plugin_json():
     for skill_md in candidates:
         skill_name = skill_md.parent.name
         rel = skill_md.relative_to(REPO_ROOT)
-        text = skill_md.read_text()
+        text = skill_md.read_text(encoding="utf-8")
         frontmatter = _extract_frontmatter(text)
         if not frontmatter:
             errors.append(f"{rel} has no YAML frontmatter block")
@@ -312,13 +312,12 @@ def test_skill_metadata_versions_match_plugin_json():
 def test_marketplace_metadata_and_author_parity():
     """marketplace.json metadata.description includes both counts; plugin entry author parities plugin.json.
 
-    Background: v1.9.8 release notes claimed `author.email` was added in commit 8514999
-    but verification showed only owner.name existed. v1.9.9 corrects this and adds a
-    guard so marketplace.json metadata.description + plugin entry author stay in sync
-    with plugin.json.
+    Author metadata is public, non-sensitive identity information. Keep the
+    marketplace entry aligned with the plugin manifest without requiring an
+    email address.
     """
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    mp = json.loads(MARKETPLACE_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    mp = json.loads(MARKETPLACE_JSON.read_text(encoding="utf-8"))
 
     desc = mp["metadata"]["description"]
     desc_sub_skills = re.search(r"(\d+)\s+sub-skills", desc)
@@ -351,9 +350,11 @@ def test_marketplace_metadata_and_author_parity():
     )
     p_author = plugin["author"]
     m_author = plugin_entry["author"]
-    # Exact parity for all 3 fields (name, email, url) — drift in any field
-    # signals a metadata sync miss
-    for field in ("name", "email", "url"):
+    # Exact parity for the public fields. Email addresses are intentionally not
+    # shipped in either manifest.
+    assert "email" not in p_author
+    assert "email" not in m_author
+    for field in ("name", "url"):
         p_val = p_author.get(field)
         m_val = m_author.get(field)
         assert p_val, f"plugin.json author.{field} must be non-empty (was: {p_val!r})"
@@ -365,7 +366,7 @@ def test_marketplace_metadata_and_author_parity():
 
 def test_canonical_math_adds_up():
     """The canonical phrasing's parenthetical breakdown must sum to the headline count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
+    plugin = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
     desc = plugin["description"]
     headline_match = re.search(r"(\d+)\s+sub-skills\s+\(([^)]+)\)", desc)
     assert headline_match, (
@@ -415,7 +416,7 @@ def test_reference_files_have_at_least_one_link():
     # Reference files can cite each other (e.g. via [[wikilink]]).
     search_paths += ref_files
 
-    text_by_path = {p: p.read_text() for p in search_paths}
+    text_by_path = {p: p.read_text(encoding="utf-8") for p in search_paths}
 
     orphans = []
     for ref in ref_files:

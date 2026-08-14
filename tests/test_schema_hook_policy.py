@@ -1,8 +1,8 @@
 """Policy regression for the JSON-LD validation hook.
 
-FAQPage must NOT block (FAQ rich results were retired May 2026 but the
-markup still aids AI Mode), while genuinely deprecated types must still
-block the edit (exit 2).
+FAQPage must NOT block because it remains a valid Schema.org type, even though
+Google retired its rich results in May 2026 and no AI or ranking benefit is
+confirmed. Genuinely deprecated types must still block the edit (exit 2).
 """
 
 from __future__ import annotations

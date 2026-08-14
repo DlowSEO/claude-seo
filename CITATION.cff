@@ -7,13 +7,12 @@ authors:
   - alias: AgriciDaniel
     given-names: Daniel
     family-names: Agrici
-    email: agricidaniel@gmail.com
     website: 'https://agricidaniel.com'
 repository-code: 'https://github.com/AgriciDaniel/claude-seo'
 url: 'https://github.com/AgriciDaniel/claude-seo'
 license: MIT
-version: 2.2.0
-date-released: '2026-06-12'
+version: 2.2.4
+date-released: '2026-07-20'
 keywords:
   - seo
   - claude-code

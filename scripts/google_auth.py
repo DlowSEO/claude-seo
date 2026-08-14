@@ -238,7 +238,9 @@ def _save_oauth_token(token_data: dict):
     # os.fdopen takes ownership of fd — it closes the fd whether the
     # write succeeds or raises, so there is no fd-leak path here.
     try:
-        os.fchmod(fd, 0o600)
+        fchmod = getattr(os, "fchmod", None)
+        if fchmod is not None:
+            fchmod(fd, 0o600)
     except OSError:
         pass  # FS may not support fchmod (e.g. some Windows filesystems)
     with os.fdopen(fd, "w") as f:

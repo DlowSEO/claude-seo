@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_seo_audit_starts_with_render_page_auto() -> None:
     text = (REPO_ROOT / "skills" / "seo-audit" / "SKILL.md").read_text(encoding="utf-8")
     process = text[text.index("## Process"):text.index("## Crawl Configuration")]
-    assert "scripts/render_page.py" in process
+    assert "claude-seo run render_page.py" in process
+    assert "python3 scripts/render_page.py" not in process
     assert "--mode auto" in process
     assert "scripts/fetch_page.py` to retrieve HTML" not in process
 

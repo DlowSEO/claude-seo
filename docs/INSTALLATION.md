@@ -7,7 +7,7 @@
 - **Claude Code CLI** installed and configured
 
 Optional:
-- **Playwright** for screenshot capabilities
+- **Playwright Chromium** - install.sh attempts this automatically; failure is non-fatal; needed only for SPA rendering and screenshots
 
 ## Quick Install
 
@@ -18,7 +18,12 @@ The recommended path. Inside Claude Code:
 ```
 /plugin marketplace add AgriciDaniel/claude-seo
 /plugin install claude-seo@agricidaniel-claude-seo
+/seo setup
 ```
+
+Plugin installation does not run package managers. `/seo setup` is an explicit,
+one-time provisioning step that writes the virtual environment and browser only
+to Claude's persistent plugin data. Use `/seo doctor` for a read-only check.
 
 ### Manual Install (Unix, macOS, Linux)
 
@@ -60,26 +65,18 @@ cd claude-seo
 ./install.sh
 ```
 
-3. **Install Python dependencies** (if not done automatically)
+3. **Verify the managed runtime**
 
-The installer creates a venv at `~/.claude/skills/seo/.venv/`. If that fails, install manually:
-
-```bash
-# Option A: Use the venv
-~/.claude/skills/seo/.venv/bin/pip install -r ~/.claude/skills/seo/requirements.txt
-
-# Option B: User-level install
-pip install --user -r ~/.claude/skills/seo/requirements.txt
-```
-
-4. **Install Playwright browsers** (optional, for visual analysis)
+The installer delegates dependency and Chromium provisioning to the same runtime
+used by every skill. It creates `~/.claude/skills/seo/.venv/` and never falls
+back to global or user package installation.
 
 ```bash
-pip install playwright
-playwright install chromium
+~/.claude/skills/seo/bin/claude-seo doctor
 ```
 
-Playwright is optional. Without it, visual analysis uses WebFetch as a fallback.
+If core setup failed, rerun the inspected installer. If only Chromium failed,
+the installer reports a degraded result and raw-fetch analysis remains available.
 
 ## Installation Paths
 
@@ -90,6 +87,8 @@ The installer copies files to:
 | Main skill | `~/.claude/skills/seo/` |
 | Sub-skills | `~/.claude/skills/seo-*/` |
 | Subagents | `~/.claude/agents/seo-*.md` |
+| Runtime launcher | `~/.claude/skills/seo/bin/claude-seo` |
+| Isolated Python | `~/.claude/skills/seo/.venv/` |
 
 ## Verify Installation
 
@@ -153,18 +152,19 @@ If the file doesn't exist, re-run the installer.
 
 ### Python dependency errors
 
-Install dependencies manually:
+Run the managed setup again:
 
 ```bash
-pip install beautifulsoup4 requests lxml playwright Pillow urllib3 validators
+~/.claude/skills/seo/bin/claude-seo setup
 ```
 
 ### Playwright screenshot errors
 
-Install Chromium browser:
+Run the managed setup again and inspect the result:
 
 ```bash
-playwright install chromium
+~/.claude/skills/seo/bin/claude-seo setup
+~/.claude/skills/seo/bin/claude-seo doctor
 ```
 
 ### Permission errors on Unix

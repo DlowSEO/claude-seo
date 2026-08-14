@@ -535,6 +535,52 @@ def test_save_oauth_token_remediates_legacy_0o644(tmp_path, monkeypatch) -> None
     assert target.stat().st_mode & 0o777 == 0o600
 
 
+def test_save_oauth_token_without_fchmod_closes_descriptor(tmp_path, monkeypatch) -> None:
+    """Windows has no os.fchmod; persistence must still succeed and close fd."""
+    import json
+    import google_auth  # noqa: WPS433
+
+    target = tmp_path / "config" / "oauth-token.json"
+    monkeypatch.setattr(google_auth, "TOKEN_PATH", str(target))
+    monkeypatch.delattr(google_auth.os, "fchmod", raising=False)
+
+    real_open = os.open
+    opened_fds = []
+
+    def recording_open(*args, **kwargs):
+        fd = real_open(*args, **kwargs)
+        opened_fds.append(fd)
+        return fd
+
+    monkeypatch.setattr(google_auth.os, "open", recording_open)
+    google_auth._save_oauth_token({"access_token": "windows"})
+
+    assert json.loads(target.read_text(encoding="utf-8")) == {
+        "access_token": "windows"
+    }
+    assert len(opened_fds) == 1
+    with pytest.raises(OSError):
+        os.fstat(opened_fds[0])
+
+
+def test_save_oauth_token_ignores_fchmod_oserror(tmp_path, monkeypatch) -> None:
+    """Filesystems without descriptor chmod support must still persist tokens."""
+    import json
+    import google_auth  # noqa: WPS433
+
+    target = tmp_path / "config" / "oauth-token.json"
+    monkeypatch.setattr(google_auth, "TOKEN_PATH", str(target))
+
+    def unsupported_fchmod(_fd, _mode):
+        raise OSError("unsupported")
+
+    monkeypatch.setattr(google_auth.os, "fchmod", unsupported_fchmod)
+    google_auth._save_oauth_token({"access_token": "portable"})
+    assert json.loads(target.read_text(encoding="utf-8")) == {
+        "access_token": "portable"
+    }
+
+
 def test_load_oauth_token_remediates_legacy_0o644(tmp_path, monkeypatch) -> None:
     """_load_oauth_token chmods the file before reading, so the next read
     by any other process sees 0o600 even without a re-save."""

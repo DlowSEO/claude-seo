@@ -1,12 +1,12 @@
 [project]
 name = "claude-seo"
-version = "2.2.0"
+version = "2.2.4"
 description = "Comprehensive SEO analysis skill for Claude Code"
 requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
 authors = [
-  {name = "Daniel Agrici", email = "agricidaniel@gmail.com"}
+  {name = "Daniel Agrici"}
 ]
 keywords = ["seo", "claude-code", "ai-tools", "schema-markup", "e-e-a-t", "geo"]
 

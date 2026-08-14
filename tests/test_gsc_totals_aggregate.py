@@ -49,6 +49,8 @@ def test_totals_use_aggregate_not_query_sum():
     # Summing the query rows would yield 0 clicks; the aggregate is the truth.
     assert result["totals"]["clicks"] == 24, result["totals"]
     assert result["totals"]["impressions"] == 2734, result["totals"]
+    assert result["totals_source"] == "dimensionless_aggregate"
+    assert result["totals_complete"] is True
     assert result["row_count"] == 2  # rows still come from the dimensioned query
 
 
@@ -67,3 +69,6 @@ def test_totals_fall_back_to_row_sum_when_aggregate_fails():
         result = gsc_query.query_search_analytics("sc-domain:example.com", dimensions=["query"])
     # Aggregate failed -> fall back to the summed rows (impressions still add up).
     assert result["totals"]["impressions"] == 928, result["totals"]
+    assert result["totals_source"] == "partial_row_sum"
+    assert result["totals_complete"] is False
+    assert any("incomplete" in warning for warning in result["warnings"])

@@ -28,15 +28,17 @@ try:
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
     import numpy as np
-except ImportError:
-    print("Error: matplotlib required. Install with: pip install matplotlib", file=sys.stderr)
-    sys.exit(1)
+    _CHART_IMPORT_ERROR = None
+except (ImportError, OSError, RuntimeError) as exc:
+    matplotlib = plt = mpatches = np = None
+    _CHART_IMPORT_ERROR = exc
 
 try:
     from weasyprint import HTML
-except ImportError:
-    print("Error: weasyprint required. Install with: pip install weasyprint", file=sys.stderr)
-    sys.exit(1)
+    _PDF_IMPORT_ERROR = None
+except (ImportError, OSError) as exc:
+    HTML = None
+    _PDF_IMPORT_ERROR = exc
 
 
 # ─── Brand Colors ────────────────────────────────────────────────────────────
@@ -93,6 +95,34 @@ def _rating_css_class(rating):
     return "status-warn"
 
 
+GSC_ANOMALY_START = "2025-05-13"
+GSC_ANOMALY_END = "2026-04-27"
+GSC_ANOMALY_WARNING = (
+    "GSC impressions logging error affected impressions, CTR, and average "
+    "position from 2025-05-13 through 2026-04-27; clicks were not affected."
+)
+
+
+def _date_range_overlaps(start_date: str, end_date: str, overlap_start: str, overlap_end: str) -> bool:
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        window_start = datetime.strptime(overlap_start, "%Y-%m-%d").date()
+        window_end = datetime.strptime(overlap_end, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return False
+    return start <= window_end and end >= window_start
+
+
+def _gsc_anomaly_warning(gsc_data: dict) -> str:
+    dr = gsc_data.get("date_range", {}) if isinstance(gsc_data, dict) else {}
+    if _date_range_overlaps(
+        dr.get("start"), dr.get("end"), GSC_ANOMALY_START, GSC_ANOMALY_END
+    ):
+        return GSC_ANOMALY_WARNING
+    return ""
+
+
 # ─── Chart Setup ─────────────────────────────────────────────────────────────
 
 def _setup_matplotlib():
@@ -112,7 +142,17 @@ def _setup_matplotlib():
     })
 
 
-_setup_matplotlib()
+if plt is not None:
+    _setup_matplotlib()
+
+
+def _require_chart_dependencies() -> None:
+    """Raise a runtime error only when a requested report needs charts."""
+    if plt is None or np is None:
+        raise RuntimeError(
+            "matplotlib and numpy are required for chart generation. "
+            "Install the report dependencies from requirements.txt."
+        ) from _CHART_IMPORT_ERROR
 
 
 # ─── Chart Functions ─────────────────────────────────────────────────────────
@@ -122,6 +162,7 @@ def chart_lighthouse_gauges(data: dict, output_dir: Path) -> str:
     scores = data.get("lighthouse_scores", {})
     if not scores:
         return ""
+    _require_chart_dependencies()
 
     fig, axes = plt.subplots(2, 2, figsize=(8, 4), subplot_kw={"projection": "polar"})
     categories = [
@@ -182,6 +223,7 @@ def chart_cwv_distributions(data: dict, output_dir: Path) -> str:
 
     if not labels:
         return ""
+    _require_chart_dependencies()
 
     fig, ax = plt.subplots(figsize=(8, max(2.5, len(labels) * 0.7)))
     y = range(len(labels))
@@ -231,6 +273,7 @@ def chart_cwv_timeline(data: dict, output_dir: Path) -> str:
     available = [m for m in cwv_metrics if m in metrics]
     if not available:
         return ""
+    _require_chart_dependencies()
 
     fig, axes = plt.subplots(len(available), 1, figsize=(10, 3 * len(available)), sharex=True)
     if len(available) == 1:
@@ -299,6 +342,7 @@ def chart_top_queries(data: dict, output_dir: Path) -> str:
 
     if not impressions or max(impressions) < 3:
         return ""
+    _require_chart_dependencies()
 
     fig, ax = plt.subplots(figsize=(7, max(2, len(labels) * 0.3)))
     y = range(len(labels))
@@ -347,6 +391,7 @@ def chart_index_status(data: dict, output_dir: Path) -> str:
 
     if not sizes:
         return ""
+    _require_chart_dependencies()
 
     fig, ax = plt.subplots(figsize=(4.5, 3.5))
     wedges, texts, autotexts = ax.pie(
@@ -1537,6 +1582,7 @@ def _build_cwv_section(psi_data, crux_data, chart_paths, history_data=None, sect
 def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
     """Build the GSC Search Performance section."""
     fig_counter = [fig_start]
+    gsc_warning = _gsc_anomaly_warning(gsc_data)
 
     def next_fig():
         n = fig_counter[0]
@@ -1558,6 +1604,9 @@ def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
         domain = gsc_data.get("property", "?")
         lines.append(f'  <p>Period: {dr.get("start", "?")} to {dr.get("end", "?")} '
                      f'| Property: {domain}</p>')
+        if gsc_warning:
+            lines.append(f'  <div class="highlight"><strong>GSC data warning:</strong> '
+                         f'{escape(gsc_warning)}</div>')
         queries_count = gsc_data.get("row_count", 0)
         impr_total = totals.get("impressions", 0)
         lines.append(f'  <p><strong>{domain}</strong> appeared in <strong>{queries_count}</strong> unique search queries '
@@ -1957,8 +2006,14 @@ def _build_recommendations(data, section_num=5):
     return "\n".join(lines)
 
 
-def _build_methodology_footer(domain, timestamp):
+def _build_methodology_footer(domain, timestamp, gsc_warning=""):
     """Build the Data Sources & Methodology footer section."""
+    warning_html = ""
+    if gsc_warning:
+        warning_html = (
+            f'  <p class="data-freshness"><strong>GSC data warning:</strong> '
+            f'{escape(gsc_warning)}</p>\n'
+        )
     return (
         f'\n<!-- {"=" * 55} DATA SOURCES & METHODOLOGY {"=" * 3} -->\n'
         f'<div class="section" style="text-align: center; padding-top: 15mm;">\n'
@@ -1986,6 +2041,7 @@ def _build_methodology_footer(domain, timestamp):
         f'          <td>Real-time (2,000/day)</td></tr>\n'
         f'    </tbody>\n'
         f'  </table>\n'
+        f'{warning_html}'
         f'  <p style="color: #94a3b8; font-size: 9pt; margin-top: 5mm;">\n'
         f'    Report generated by Claude SEO &mdash; Google SEO Intelligence Skill &mdash; '
         f'{timestamp}<br>\n'
@@ -2024,35 +2080,39 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     chart_paths = {}
 
-    if report_type in ("cwv-audit", "full"):
-        psi = data.get("psi", data)
-        mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
-        path = chart_lighthouse_gauges(mobile, charts_dir)
-        if path:
-            chart_paths["gauges_path"] = path
-
-        crux = data.get("crux", {})
-        path = chart_cwv_distributions({"crux": crux} if crux else data, charts_dir)
-        if path:
-            chart_paths["distributions_path"] = path
-
-        history = data.get("crux_history", {})
-        if history and not history.get("error"):
-            path = chart_cwv_timeline(history, charts_dir)
+    try:
+        if report_type in ("cwv-audit", "full"):
+            psi = data.get("psi", data)
+            mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
+            path = chart_lighthouse_gauges(mobile, charts_dir)
             if path:
-                chart_paths["timeline_path"] = path
+                chart_paths["gauges_path"] = path
 
-    if report_type in ("gsc-performance", "full"):
-        gsc = data.get("gsc", data)
-        path = chart_top_queries(gsc, charts_dir)
-        if path:
-            chart_paths["top_queries_path"] = path
+            crux = data.get("crux", {})
+            path = chart_cwv_distributions({"crux": crux} if crux else data, charts_dir)
+            if path:
+                chart_paths["distributions_path"] = path
 
-    if report_type in ("indexation", "full"):
-        inspect = data.get("inspection", data)
-        path = chart_index_status(inspect, charts_dir)
-        if path:
-            chart_paths["index_status_path"] = path
+            history = data.get("crux_history", {})
+            if history and not history.get("error"):
+                path = chart_cwv_timeline(history, charts_dir)
+                if path:
+                    chart_paths["timeline_path"] = path
+
+        if report_type in ("gsc-performance", "full"):
+            gsc = data.get("gsc", data)
+            path = chart_top_queries(gsc, charts_dir)
+            if path:
+                chart_paths["top_queries_path"] = path
+
+        if report_type in ("indexation", "full"):
+            inspect = data.get("inspection", data)
+            path = chart_index_status(inspect, charts_dir)
+            if path:
+                chart_paths["index_status_path"] = path
+    except RuntimeError as exc:
+        result["error"] = str(exc)
+        return result
 
     # ── Build HTML Sections ──────────────────────────────────────────────────
 
@@ -2139,7 +2199,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         sections.append(gsc_html)
 
         sections.append(_build_recommendations(data, section_num=3))
-        sections.append(_build_methodology_footer(domain, timestamp))
+        sections.append(_build_methodology_footer(domain, timestamp, _gsc_anomaly_warning(gsc)))
 
     # ── INDEXATION report ────────────────────────────────────────────────────
     elif report_type == "indexation":
@@ -2290,7 +2350,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             sections.append(action_html)
         else:
             sections.append(_build_recommendations(data, section_num=rec_num))
-        sections.append(_build_methodology_footer(domain, timestamp))
+        sections.append(_build_methodology_footer(domain, timestamp, _gsc_anomaly_warning(data.get("gsc", {}))))
 
     # ── Assemble Final HTML ──────────────────────────────────────────────────
 
@@ -2323,6 +2383,12 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         result["files"].append(str(html_path))
 
     if output_format in ("pdf", "both", "all"):
+        if HTML is None:
+            result["error"] = (
+                "weasyprint is required for PDF generation. "
+                "Install the report dependencies from requirements.txt."
+            )
+            return result
         pdf_path = output_dir / f"{base_name}.pdf"
         try:
             HTML(string=html_content).write_pdf(str(pdf_path))
@@ -2362,7 +2428,7 @@ def _review_pdf(pdf_path: str, html_content: str) -> dict:
         reader = PdfReader(pdf_path)
         review["page_count"] = len(reader.pages)
     except ImportError:
-        pass
+        review["issues"].append("pypdf missing, page-count check skipped")
 
     # HTML-level checks
     import re
@@ -2604,7 +2670,7 @@ def main():
     # Load data
     if args.data:
         try:
-            with open(args.data, "r") as f:
+            with open(args.data, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error reading data file: {e}", file=sys.stderr)
