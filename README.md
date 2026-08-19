@@ -1,14 +1,13 @@
 # Claude SEO Assistant
 
-A simplified SEO toolkit for Claude Code. A cleaner fork of [claude-seo](https://github.com/AgriciDaniel/claude-seo) by Daniel Agrici (MIT).
-Same analysis depth, a fraction of the surface area.
+A simplified SEO toolkit for Claude Code. An improved fork of [claude-seo](https://github.com/AgriciDaniel/claude-seo) by Daniel Agrici.
+Same analysis depth, less additional features.
 
 **8 commands. 8 skills. 8 agents. Zero bundled extensions.**
 
-The original grew to 25 sub-skills, 18 agents, and 30+ commands — and the most
-common piece of user feedback was that it had become confusing to navigate.
+The original grew to 25 sub-skills, 18 agents, and 30+ commands - thus seemed convoluted.
 This build collapses overlapping skills into single entry points and cuts the
-long tail, without losing the underlying analysis content (merged skills keep
+long tail, without losing the core analysis content (merged skills keep
 their source material as internal modules).
 
 ## Install
@@ -41,6 +40,6 @@ competitor-pages, ecommerce → `strategy`
 
 **Cut** — flow, sxo, drift, image-gen, and all bundled extensions. The
 extension mechanism remains; nothing installs by default. These features
-live on in the [original repo](https://github.com/DlowSEO/claude-seo).
+live on in the [original repo].
 
 MIT licensed, like the original.
