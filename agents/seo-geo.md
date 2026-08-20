@@ -53,6 +53,14 @@ Only 11% of domains are cited by both ChatGPT and Google AI Overviews, so platfo
 
 If DataForSEO MCP tools are available, use `ai_optimization_chat_gpt_scraper` for live ChatGPT visibility and `ai_opt_llm_ment_search` for LLM mention tracking.
 
+## Evidence Standard
+
+Cite the actual robots.txt lines (or their absence) per crawler, not "AI crawlers are blocked."
+Quote real passages when scoring citability against the 134-167 word range, and name the pages
+they came from. Brand mention findings must reference where the mention was actually checked
+(a specific search or fetch), not an assumption. A missing signal is a finding only when you
+checked for it and it wasn't there, say what you looked for.
+
 ## Output Format
 
 Provide a structured report with:

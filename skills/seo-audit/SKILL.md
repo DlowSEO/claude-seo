@@ -2,7 +2,7 @@
 name: seo-audit
 description: "Full website SEO audit with parallel subagent delegation. Crawls up to 500 pages, detects business type, delegates to up to 15 specialists (8 always + 7 conditional), generates health score. Use when user says audit, full SEO check, analyze my site, or website health check."
 user-invocable: true
-argument-hint: "[url]"
+argument-hint: "[url] [--mode snapshot|full]"
 license: MIT
 metadata:
   author: Dan Lowry
@@ -14,9 +14,19 @@ metadata:
 
 ## Process
 
+0. **Determine audit mode**: if `--mode` wasn't passed, ask the user before crawling anything:
+
+   > Do you want a **Snapshot Audit** (free-audit style: top-level findings only, output capped
+   > at 10 pages — good for a quick read on a small site) or a **Full Audit** (comprehensive
+   > crawl and findings across every category — recommended for larger or e-commerce sites)?
+
+   Don't guess from site size alone; a small site owner may still want the full depth, and a
+   large e-commerce owner may want a snapshot first. See Audit Modes below for what each
+   changes.
+
 1. **Render homepage**: use `claude-seo run render_page.py <url> --mode auto --json` to capture raw HTML, rendered HTML, extracted text, SPA status, and accessibility data when needed
 2. **Detect business type**: analyze homepage signals per seo orchestrator
-3. **Crawl site**: follow internal links up to 500 pages, respect robots.txt
+3. **Crawl site**: follow internal links up to the mode's page cap, respect robots.txt
 4. **Delegate to subagents** (if available, otherwise run inline sequentially):
    - `seo-technical` -- robots.txt, sitemaps, canonicals, schema, Core Web Vitals, security headers
    - `seo-content` -- E-E-A-T, readability, thin content, AI citation readiness
@@ -35,10 +45,27 @@ metadata:
 6. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`
 7. **Report** -- generate prioritized action plan and optional PDF/HTML report
 
+## Audit Modes
+
+| | Snapshot Audit | Full Audit |
+|---|---|---|
+| Positioning | Free/quick-look audit, small sites | Comprehensive audit, larger or e-commerce sites |
+| Crawl cap | 50 pages | 500 pages |
+| Specialists | Same delegation rules (8 always + conditional) | Same delegation rules (8 always + conditional) |
+| Per-specialist findings | Top 3-5 highest-severity findings only, still evidence-backed | Full findings list |
+| `FULL-AUDIT-REPORT.md` length | Capped at 10 pages: Executive Summary, health score, top 5 critical issues, top 5 quick wins, one condensed paragraph per category (score + top findings), no exhaustive per-page tables | Full Report Structure below, no length cap |
+| `ACTION-PLAN.md` | Critical + High priority items only | All four phases |
+| PDF generation | Optional, same condensed content | Recommended (see Output Files) |
+
+Both modes still run the full crawl-and-analyze pipeline and every finding still needs evidence
+per the standard below, snapshot mode trims *how much* gets reported, not the rigor behind it.
+Note in the report header which mode produced it, and that Snapshot Audit findings represent a
+sample, not exhaustive coverage, so the reader knows to ask for a Full Audit if they want more.
+
 ## Crawl Configuration
 
 ```
-Max pages: 500
+Max pages: 500 (full) / 50 (snapshot)
 Respect robots.txt: Yes
 Follow redirects: Yes (max 3 hops)
 Timeout per page: 30 seconds
@@ -48,7 +75,7 @@ Delay between requests: 1 second
 
 ## Output Files
 
-- `{domain}-audit/FULL-AUDIT-REPORT.md`: Comprehensive findings
+- `{domain}-audit/FULL-AUDIT-REPORT.md`: Comprehensive findings (Full Audit) or a 10-page-max condensed summary (Snapshot Audit, see Audit Modes)
 - `{domain}-audit/ACTION-PLAN.md`: Prioritized recommendations (Critical > High > Medium > Low)
 - `{domain}-audit/audit-data.json`: Structured audit envelope for report generation
 - `{domain}-audit/findings/*.md`: Per-category specialist findings (`technical.md`, `content.md`, `schema.md`, `performance.md`, `visual.md`, etc.)
@@ -96,6 +123,22 @@ Write `{domain}-audit/audit-data.json` with this shape so `claude-seo run google
   }
 }
 ```
+
+## Evidence Standard
+
+This applies whether specialists are delegated to or the audit runs inline. A finding is not
+done until it cites what was actually observed on this site:
+
+- Name the exact affected URL(s). If an issue spans multiple pages, give the count plus a
+  representative sample of URLs ("14 of 32 crawled pages," not "several pages").
+- Quote or show the actual value found: an HTML snippet, header, meta content, measured
+  number, or screenshot reference. Never assert a violation without the evidence that proves it.
+- State how many pages/instances were checked, so "0 found" reads differently from "not checked."
+- Label inferred claims as inferred and say why; don't present inference as direct observation.
+- If the same recommendation would apply to any site regardless of what was crawled, it's not
+  a finding yet, dig for the site-specific instance before including it.
+
+Findings that fail this standard get cut before they reach `audit-data.json`, not softened.
 
 ## Scoring Weights
 

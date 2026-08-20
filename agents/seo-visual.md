@@ -62,11 +62,18 @@ claude-seo run render_page.py URL --mode auto --a11y-tree --json
 - Images not scaling properly
 - Broken layout at different widths
 
+## Evidence Standard
+
+Every visual issue must reference the actual screenshot it came from and a concrete location in
+it (element, approximate coordinates, or region description), not "layout looks off." Report the
+measured viewport and any real pixel/size values checked (touch target dimensions, base font
+size). If a check passed, say what you looked at and confirmed, not just "no issues found."
+
 ## Output Format
 
 Provide:
 - Screenshots saved to `screenshots/` directory
-- Visual analysis summary
+- Visual analysis summary, each claim tied to a specific screenshot and element/region
 - Mobile responsiveness assessment
 - Above-the-fold content evaluation
 - Specific issues with element locations

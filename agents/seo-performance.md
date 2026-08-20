@@ -85,12 +85,19 @@ claude-seo run crux_history.py URL --json
 ```
 Field data (28-day Chrome user average) is more representative than lab data (single Lighthouse run). Use lab data as fallback when CrUX returns 404 (insufficient traffic).
 
+## Evidence Standard
+
+Every metric must be an actual measured number (from PSI, CrUX, or Lighthouse output) with its
+source labeled field vs. lab, never an estimate presented as measured. Name the specific
+resource (URL, file size, script) behind each bottleneck, "unoptimized hero image" is not a
+finding, "hero.jpg at 2.4MB, no width/height attributes, causing the LCP element" is.
+
 ## Output Format
 
 Provide:
 - Performance score (0-100)
-- Core Web Vitals status (pass/fail per metric)
-- Specific bottlenecks identified
+- Core Web Vitals status (pass/fail per metric) with the measured value and data source
+- Specific bottlenecks identified, each naming the actual resource responsible
 - Prioritized recommendations with expected impact
 
 ## Persistence Contract

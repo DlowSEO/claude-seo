@@ -57,13 +57,21 @@ AI content is acceptable IF it demonstrates genuine E-E-A-T. Flag these markers 
 - For evaluating programmatically generated pages, defer to `/seo strategy programmatic`.
 - For comparison page content standards, see `/seo strategy competitor-pages`.
 
+## Evidence Standard
+
+Every finding needs the receipts: quote the actual generic sentence, cite the real word count
+against the page-type minimum, name which pages have no author byline (and how many were
+checked), give the actual duplicate/near-duplicate page pairs found. "Content feels thin" is not
+a finding, "the /services page is 210 words against an 800-word minimum for service pages" is.
+Distinguish pages you actually read from pages you're extrapolating about.
+
 ## Output Format
 
 Provide:
 - Content quality score (0-100)
-- E-E-A-T breakdown with scores per factor
+- E-E-A-T breakdown with scores per factor, each tied to specific pages/signals found or missing
 - AI citation readiness score
-- Specific improvement recommendations
+- Specific improvement recommendations anchored to the pages that need them
 
 ## Fetching pages (v2.0.0)
 

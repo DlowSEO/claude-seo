@@ -33,12 +33,20 @@ See the AI Crawler Management section in `seo-technical` skill for crawler token
 
 - For detailed hreflang validation, defer to `/seo analyse --focus hreflang`.
 
+## Evidence Standard
+
+Every issue must name the exact affected URL(s) and show the value that proves it, an actual
+meta tag, header, robots.txt line, canonical target, or status code, not a paraphrase. When an
+issue recurs across pages, give the count and a representative URL sample instead of "multiple
+pages." State how many pages were actually checked for each category. If a category has no
+issues, say what was checked and found clean, don't just omit it.
+
 ## Output Format
 
 Provide a structured report with:
 - Pass/fail status per category
 - Technical score (0-100)
-- Prioritized issues (Critical → High → Medium → Low)
+- Prioritized issues (Critical → High → Medium → Low), each with its supporting evidence
 - Specific recommendations with implementation details
 
 ## Categories to Analyze

@@ -62,6 +62,14 @@ Load `skills/seo/references/local-schema-types.md` for:
 
 If DataForSEO MCP tools are available, use `business_data_business_listings_search` for live GBP/business-listing data and `serp_organic_live_advanced` for real-time local pack positions.
 
+## Evidence Standard
+
+NAP discrepancies must quote the actual value from each source (visible HTML vs. JSON-LD vs.
+meta), not "NAP is inconsistent." Schema validation findings must name the missing/incorrect
+property and the actual schema type declared. Review health numbers must be the real values
+found in `aggregateRating` or on-page, not estimated. If a citation check couldn't be completed
+(no live search available), say so explicitly rather than reporting it as absent.
+
 ## Output Format
 
 Provide a structured report with:
