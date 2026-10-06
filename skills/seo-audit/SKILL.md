@@ -80,7 +80,40 @@ Delay between requests: 1 second
 - `{domain}-audit/audit-data.json`: Structured audit envelope for report generation
 - `{domain}-audit/findings/*.md`: Per-category specialist findings (`technical.md`, `content.md`, `schema.md`, `performance.md`, `visual.md`, etc.)
 - `{domain}-audit/screenshots/`: Desktop + mobile captures (if Playwright available)
-- **PDF Report** (recommended): Generate a professional A4 PDF using `claude-seo run google_report.py --type full --data {domain}-audit/audit-data.json --domain <domain> --output-dir {domain}-audit/`. This produces a white-cover enterprise report with TOC, executive summary, charts (Lighthouse gauges, query bars, index donut), metric cards, threshold tables, prioritized recommendations with effort estimates, and implementation roadmap. Always offer PDF generation after completing an audit.
+- **PDF Report** (recommended): Generate a professional A4 PDF using `claude-seo run google_report.py --type full --data {domain}-audit/audit-data.json --domain <domain> --output-dir {domain}-audit/`. This produces a white-cover enterprise report with TOC, executive summary, charts (Lighthouse gauges, query bars, index donut), metric cards, threshold tables, prioritized recommendations with effort estimates, and implementation roadmap. Always offer PDF generation after completing an audit. Client-facing PDFs must use the Ad Rank One Design System (see below).
+
+## Report Design: Ad Rank One Design System (required)
+
+Every client-facing audit report (PDF or HTML) must be built with the
+**Ad Rank One Design System** (`@aro/design-system`). Do not use the default
+white-cover `google_report.py` styling for client deliverables.
+
+- **Source:** `~/Documents/Claude audits/Ad Rank One Design System/` (zip copy
+  alongside it). This is the only approved copy; any older "aro Design System"
+  folder or notes are superseded.
+- **Read first:** `README.md`, then `guidelines/guidelines/brand-rules.md`,
+  `documents-and-decks.md` and `components.md`, plus the `.prompt.md` for each
+  component you use.
+- **Loading:** link `styles.css` (imports `_ds_bundle.css`, tokens and the
+  Adobe Fonts kit) and `_ds_bundle.js` after React (`_vendor/`). Components are
+  on `window.AroDS`; wrap everything once in `AroRoot`.
+- **Page structure:** open on `DocCover` (void, aurora mesh, title, "Prepared
+  for", date written out, fixed registered details), then one `DocPage` per A4
+  page. Never hand-build page frames, covers or logos.
+- **Components for audit content:** `DataTable` for figures, `StatBand` /
+  `BeforeAfter` for results, `Checklist` for what the client gets, `Steps` for
+  the action plan sequence, `FactsStrip` for at-a-glance facts.
+- **Style glue with `--aro-*` tokens only** (documents use the `--aro-doc-*`
+  A4 scale). Paper ground for on-screen PDFs, white `--aro-surface` if printed.
+- **Brand rules that are easy to break:** Degular / Degular Display only (no
+  serif, no mono); no eyebrows or kickers above headings; no italics for
+  emphasis; section headings at h2 size, sentence case; jade means proof,
+  violet means links only; aurora only on the cover; no pills; British English,
+  no dashes as punctuation; never invent figures or claims; never use the
+  tagline "Found by humans. Found by machines."
+
+If the design system folder is missing, stop and ask the user for it rather
+than falling back to unbranded output.
 
 ## Structured Audit Data Envelope
 
