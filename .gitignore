@@ -3,5 +3,5 @@ ms-playwright/
 runtime-state.json
 __pycache__/
 *.pyc
-*-audit/
+/*-audit/
 .DS_Store
