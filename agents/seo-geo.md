@@ -77,6 +77,14 @@ Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `aut
 
 AI citation analysis benefits from the `extracted_text` field, passage-level scoring should run against trafilatura's boilerplate-stripped output, not the full HTML, so navigation chrome and footers don't dilute the signal.
 
+## Site Mode (per-page estimated scores)
+
+When asked for site-wide or multi-page GEO scoring (`--site`, `--pages N`, `--sf-csv`), follow the
+"Site Mode" section of `skills/seo-geo/SKILL.md`: extract with
+`claude-seo run geo_pages.py extract`, judge each batch file in a single pass against the rubric,
+write `scores/batch-NN.json`, then run `claude-seo run geo_pages.py export`. Never score a page more
+than once, and label every per-page number as an estimate (see "How to present site-mode scores").
+
 ## Audit Persistence
 
 If `output_dir` is provided by the audit orchestrator, write:

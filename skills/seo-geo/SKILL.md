@@ -4,12 +4,14 @@ description: >
   Optimize content for AI Overviews (formerly SGE), ChatGPT web search,
   Perplexity, and other AI-powered search experiences. Generative Engine
   Optimization (GEO) analysis including brand mention signals, AI crawler
-  accessibility, llms.txt compliance, passage-level citability scoring, and
-  platform-specific optimization. Use when user says "AI Overviews", "SGE",
-  "GEO", "AI search", "LLM optimization", "Perplexity", "AI citations",
-  "ChatGPT search", or "AI visibility".
+  accessibility, llms.txt compliance, passage-level citability scoring,
+  site-wide page scoring (--site, with estimated per-page scores, likely target
+  queries, content gaps and a CSV/XLSX export, optionally from a Screaming Frog
+  crawl), and platform-specific optimization. Use when user says "AI
+  Overviews", "SGE", "GEO", "AI search", "LLM optimization", "LLMO",
+  "Perplexity", "AI citations", "ChatGPT search", or "AI visibility".
 user-invocable: true
-argument-hint: "[url]"
+argument-hint: "[url] [--site] [--pages N] [--sf-csv file]"
 license: MIT
 metadata:
   author: Dan Lowry
@@ -252,12 +254,125 @@ Google added many AI citation/source surfaces across AI Overviews **and** AI Mod
 
 ---
 
+## Modes
+
+| Invocation | What runs |
+|---|---|
+| `/seo geo <url>` | Single-page analysis (below). Site-level checks (robots.txt, llms.txt, brand mentions) run once. |
+| `/seo geo <url> --site` | Site-level checks once, plus per-page scoring of up to 25 pages from the sitemap. |
+| `/seo geo <url> --site --pages N` | Same, with a page budget of N (max 500). Warn about token cost above 50. |
+| `/seo geo --sf-csv <file>` | Per-page scoring of the pages in a Screaming Frog export (Internal > HTML). |
+
+## Site Mode: Per-Page Estimated Scoring
+
+Site mode scores many pages without reading their full HTML. A script does the
+crawling and measuring; Claude only reads a compact batch of each page's
+highest-signal passages and judges them in **one pass**. Expect roughly
+1,000-2,500 input tokens per page.
+
+### Step 1: Extract
+
+```bash
+claude-seo run geo_pages.py extract --site <url> --out <domain>-geo/ --max-pages 25
+# or: --sf-csv internal_html.csv | --urls-file urls.txt | --url <u> --url <u>
+```
+
+The script fetches the **raw server HTML** (what GPTBot, ClaudeBot and
+PerplexityBot see, as they do not run JavaScript), prioritises shallow pages
+when the sitemap is larger than the budget, and writes:
+
+- `pages.json`: per page, the outline, schema types, dates, authorship,
+  external citations, media, SPA flag, page type, and a **rule-based structure
+  score** (0-100) with its breakdown
+- `batches/batch-NN.json`: five pages per batch, each with its title, outline
+  and up to 8 selected passages (the lead passage plus the highest-signal
+  others, capped at 180 words each, tagged with signals such as
+  `definition`, `direct_answer`, `statistic`, `attribution`)
+
+Report the `pages_failed` and `warnings` lists from the script's summary.
+
+### Step 2: Judge each batch (single pass)
+
+Read one batch file at a time and score every page in it in a single response.
+Judging the pages of a batch together, against the same rubric, keeps scores
+more consistent than scoring pages in isolation. Do not re-score a page to
+average results; one pass per page keeps the cost predictable.
+
+For each page, write an entry to `<domain>-geo/scores/batch-NN.json`:
+
+```json
+[{
+  "url": "https://example.com/services/seo/",
+  "judgement_score": 62,
+  "target_queries": [
+    {"query": "seo services for small business", "fit": "strong"},
+    {"query": "how much does seo cost", "fit": "weak"}
+  ],
+  "best_passage_id": "p2",
+  "weakest_passage_id": "p5",
+  "gaps": ["No pricing guidance", "No answer to 'how long does SEO take'"],
+  "citation_potential": "medium",
+  "priority": "high",
+  "confidence": "medium",
+  "top_fix": "Open with a 2-sentence answer to what the service includes and costs"
+}]
+```
+
+Rubric for `judgement_score` (0-100):
+
+| Component | Points | What to judge |
+|---|---|---|
+| Query fit | 30 | Infer 3-5 queries the page should win. Does a passage answer each one directly? |
+| Passage citability | 30 | Could the best passages be quoted on their own: specific, self-contained, factual? |
+| Evidence and specificity | 20 | Numbers, named sources, first-hand detail, versus generic claims |
+| Completeness | 20 | Obvious follow-up questions answered on the page, versus gaps |
+
+- `fit`: `strong` (a passage answers it directly), `partial`, `weak` (topic is on the page but unanswered).
+- `citation_potential`: `high` / `medium` / `low`, the chance of being quoted for its strongest query. This replaces "top 3 potential" claims, which a single page view cannot support.
+- `priority`: `critical` / `high` / `medium` / `low`, weighing the page's business value (homepage, service, product and pricing pages first) against how far it falls short.
+- `confidence`: `low` when the page had few passages, was an SPA shell, or the batch was truncated.
+- Quote real passage IDs. Never invent queries the page has no content for; list them as gaps instead.
+
+### Step 3: Export
+
+```bash
+claude-seo run geo_pages.py export --out <domain>-geo/ --xlsx
+```
+
+This writes `geo-pages.csv` (and `geo-pages.xlsx`) with one row per URL,
+sorted by priority then lowest score. The **Estimated GEO score** combines 60%
+AI judgement and 40% rule-based structure score.
+
+### Optional: check real AI answers
+
+If DataForSEO tools are available, take the strongest `target_queries` for the
+top 5 priority pages and check whether the domain is actually cited (see
+DataForSEO Integration below). Report observed citations separately from the
+estimated scores. They are evidence; the scores are not.
+
+### How to present site-mode scores
+
+Every per-page score is an **estimate** for prioritising work, not a measured
+or guaranteed outcome. In reports and tables:
+
+- Label the columns "Estimated GEO score", "AI judgement (estimated)" and
+  "Structure score (rule-based)". Never call any of them a ranking, a
+  visibility metric or a prediction of citations.
+- Include one line under the table: "Estimated from a single AI review and
+  rule-based checks of each page's server HTML. Use it to prioritise work, not
+  as a measure of current AI visibility."
+- Research is mixed on whether on-page GEO tactics change AI citations (see
+  C-SEO Bench, arXiv 2506.11097), and Google says GEO is still SEO. Frame
+  recommendations as making answers clearer and easier to quote, not as tricks.
+
+---
+
 ## Output
 
 Generate `GEO-ANALYSIS.md` with:
 
-1. **GEO Readiness Score: XX/100**
-2. **Platform breakdown** (Google AIO, ChatGPT, Perplexity scores)
+1. **Estimated GEO Readiness Score: XX/100**
+2. **Platform breakdown** (estimated Google AIO, ChatGPT, Perplexity scores)
 3. **AI Crawler Access Status** (which crawlers allowed/blocked)
 4. **llms.txt Status** (present, missing, recommendations)
 5. **Brand Mention Analysis** (presence on Wikipedia, Reddit, YouTube, LinkedIn)
@@ -266,6 +381,17 @@ Generate `GEO-ANALYSIS.md` with:
 8. **Top 5 Highest-Impact Changes**
 9. **Schema Recommendations** (for AI discoverability)
 10. **Content Reformatting Suggestions** (specific passages to rewrite)
+
+In site mode, also include:
+
+11. **Page Scores (estimated)**: the 10 highest-priority pages from
+    `geo-pages.csv` with estimated score, likely target queries, citation
+    potential, priority and top fix, plus a link to the full CSV/XLSX
+12. **Site Patterns**: issues repeated across many pages (for example "18 of
+    25 pages have no dates", "no service page answers pricing questions"),
+    which usually beat page-by-page fixes on effort
+13. **Passage Rewrites**: before/after rewrites of the weakest passage on the
+    3 highest-priority pages
 
 ---
 
@@ -308,6 +434,9 @@ If DataForSEO MCP tools are available, use `ai_optimization_chat_gpt_scraper` to
 | AI crawlers blocked by robots.txt | Report exactly which crawlers are blocked and which are allowed. Provide specific robots.txt directives to add for enabling AI search visibility. |
 | No llms.txt found | Note the absence (optional file; Google Search ignores it) and provide a ready-to-use llms.txt template for non-Google AI crawlers. |
 | No structured data detected | Report the gap and provide specific schema recommendations (Article, Organization, Person) for improving AI discoverability. |
+| Site mode finds no sitemap | The script falls back to the homepage. Ask for a Screaming Frog export (`--sf-csv`) or a URL list (`--urls-file`). |
+| Page is an SPA shell in site mode | Score it, set `confidence: low`, and flag that AI crawlers see little or no content until it is server-rendered. |
+| Some batches not scored | `export` lists them in `unscored_urls`; score the missing batches or report them as not scored. Never fill in a score. |
 
 ## FLOW Framework Integration
 
