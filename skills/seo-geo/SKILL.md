@@ -261,7 +261,7 @@ Google added many AI citation/source surfaces across AI Overviews **and** AI Mod
 | `/seo geo <url>` | Single-page analysis (below). Site-level checks (robots.txt, llms.txt, brand mentions) run once. |
 | `/seo geo <url> --site` | Site-level checks once, plus per-page scoring of up to 25 pages from the sitemap. |
 | `/seo geo <url> --site --pages N` | Same, with a page budget of N (max 500). Warn about token cost above 50. |
-| `/seo geo --sf-csv <file>` | Per-page scoring of the pages in a Screaming Frog export (Internal > HTML). |
+| `/seo geo --sf-csv <file or folder>` | Per-page scoring of the pages in a Screaming Frog export (Internal > HTML or Internal > All, or the folder holding it). |
 
 ## Site Mode: Per-Page Estimated Scoring
 

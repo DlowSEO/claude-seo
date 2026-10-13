@@ -201,6 +201,15 @@ def urls_from_csv(path: str) -> tuple[list[str], list[str]]:
     """
     warnings: list[str] = []
     urls: list[str] = []
+    if os.path.isdir(path):
+        # A Screaming Frog export folder, e.g. from a headless crawl.
+        found = next(
+            (os.path.join(path, n) for n in ("internal_html.csv", "internal_all.csv") if os.path.isfile(os.path.join(path, n))),
+            None,
+        )
+        if found is None:
+            raise ValueError("No internal_html.csv or internal_all.csv in that folder")
+        path = found
     with open(path, newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         fields = {name.lower().strip(): name for name in (reader.fieldnames or [])}

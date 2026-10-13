@@ -151,6 +151,14 @@ def test_urls_from_screaming_frog_csv(tmp_path) -> None:
     assert "Skipped 3" in warnings[0]
 
 
+def test_urls_from_screaming_frog_export_folder(tmp_path) -> None:
+    (tmp_path / "internal_all.csv").write_text(
+        "Address,Content Type,Status Code,Indexability\nhttps://a.com/x/,text/html,200,Indexable\n",
+        encoding="utf-8",
+    )
+    assert geo_pages.urls_from_csv(str(tmp_path))[0] == ["https://a.com/x/"]
+
+
 def test_sitemap_locs_handles_index_and_urlset() -> None:
     urlset = b'<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://a.com/x</loc></url></urlset>'
     index = b'<?xml version="1.0"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://a.com/s1.xml</loc></sitemap></sitemapindex>'
