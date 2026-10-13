@@ -31,7 +31,7 @@ Extensions (Firecrawl, DataForSEO, etc.) are opt-in installs and nothing ships b
 | `/seo analyse <url>` | Page + technical analysis. Focus: `--focus technical\|schema\|sitemap\|images\|hreflang` |
 | `/seo content <url>` | E-E-A-T content quality analysis; `content brief <topic>` generates a brief |
 | `/seo local <url>` | Local SEO: GBP, NAP, citations, reviews, geo-grid, map pack |
-| `/seo geo <url> [--site]` | AI Overviews / Generative Engine Optimization; `--site` adds estimated per-page scores and a CSV/XLSX export |
+| `/seo geo <url>` | AI Overviews / Generative Engine Optimization |
 | `/seo backlinks <url>` | Backlink profile analysis (free: Moz, Bing, Common Crawl) |
 | `/seo strategy [mode]` | Planning: `plan <type>`, `cluster <seed>`, `programmatic`, `competitor-pages`, `ecommerce <url>` |
 | `/seo google [command] [url]` | Google SEO APIs (GSC, PageSpeed, CrUX, Indexing, GA4) |
