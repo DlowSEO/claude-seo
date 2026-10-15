@@ -151,6 +151,15 @@ def validate_cc_claims(cc_data: dict) -> list:
     in_crawl = data.get("in_crawl")
     in_rankings = data.get("in_rankings")
 
+    if cc_data.get("status") == "inconclusive":
+        issues.append({
+            "severity": "info",
+            "field": "cc_data",
+            "message": "Common Crawl scan stopped before the end of the ranks file. Report CC data as "
+                       "unavailable for this run. Do NOT say the domain is missing from Common Crawl.",
+        })
+        return issues
+
     if in_crawl is False and in_rankings is False:
         # Domain not in CC at all — ensure report doesn't claim "low authority"
         issues.append({

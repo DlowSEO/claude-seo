@@ -66,7 +66,9 @@ When only Common Crawl is available, cap the maximum health score at 70/100 and 
 - **No auth needed:** Public data, free to download
 - **Data:** Domain-level in-degree, PageRank, harmonic centrality, referring domains
 - **Script:** `scripts/commoncrawl_graph.py`
-- **Cache:** `~/.cache/claude-seo/commoncrawl/` (90-day TTL)
+- **Cache:** `~/.cache/claude-seo/commoncrawl/` (90-day TTL). Only definitive results
+  are cached: found, or absent after scanning the whole ranks file. A lookup that
+  stops early returns `status: "inconclusive"` and is not cached.
 - **Blind spots:** No anchor text, no page-level data, monthly/quarterly freshness,
   domain-level only (e.g., "nytimes.com links to example.com" but not which page)
 

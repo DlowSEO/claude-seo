@@ -19,6 +19,10 @@ You are a backlink profile analyst. When delegated tasks during an SEO audit:
 ### Tier 0 (Always Available, No Config Needed)
 - Common Crawl domain metrics: `claude-seo run commoncrawl_graph.py <domain> --json`
   - PageRank, PageRank rank, harmonic centrality, harmonic centrality rank, crawl/ranking presence
+  - On a cache miss this streams the full ~2.4 GB ranks file (usually 1-3 minutes). Run it with a
+    Bash timeout of 600000 ms so it is not killed part-way.
+  - `"status": "inconclusive"` means the scan stopped before the end of the file. Report CC as
+    unavailable for this run, never as "not found" or "not crawled".
 - If known backlinks provided, verify them: `claude-seo run verify_backlinks.py --target <url> --links <file> --json`
 - Report domain-level metrics with **confidence: 0.50** note
 - At Tier 0, fewer than 4 scoring factors have data, report **INSUFFICIENT DATA**, not a numeric score
