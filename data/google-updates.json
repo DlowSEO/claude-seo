@@ -6,7 +6,7 @@
     "https://developers.google.com/search/updates",
     "https://blog.google/products/search/"
   ],
-  "last_verified": "2026-07-02",
+  "last_verified": "2026-11-03",
   "policy": "Every entry must cite a Google-owned URL. Third-party-only claims belong in unverified[]. Bump last_verified each time an entry is added or revised.",
   "_schema_doc": {
     "updates[]": {
@@ -14,7 +14,8 @@
       "name": "Short human-readable title.",
       "kind": "One of: core | spam | core+spam | policy | qrg | product | schema | cwv.",
       "source": "Required. Must resolve to a Google-owned domain (developers.google.com, web.dev, chrome.com, blog.google, support.google.com).",
-      "notes": "Optional. One-line summary of practitioner impact."
+      "notes": "Optional. One-line summary of practitioner impact.",
+      "end": "Optional. ISO date the rollout finished. Where the dashboard gives a duration, this is the start plus that duration, rounded up to the day."
     },
     "unverified[]": {
       "date": "ISO date or YYYY-MM-xx if exact date unconfirmed.",
@@ -107,7 +108,8 @@
       "name": "March 2025 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "14-day rollout."
+      "notes": "14-day rollout.",
+      "end": "2025-03-27"
     },
     {
       "date": "2025-05-20",
@@ -128,7 +130,8 @@
       "name": "June 2025 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "16-day rollout. Some Sep 2023 HCU partial recoveries."
+      "notes": "16-day rollout. Some Sep 2023 HCU partial recoveries.",
+      "end": "2025-07-17"
     },
     {
       "date": "2025-08-21",
@@ -149,28 +152,32 @@
       "name": "December 2025 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "18-day rollout. Third core update of 2025. Reported eCommerce skew per Amsive analysis."
+      "notes": "18-day rollout. Third core update of 2025. Reported eCommerce skew per Amsive analysis.",
+      "end": "2025-12-30"
     },
     {
       "date": "2026-02-05",
       "name": "February 2026 Discover Update",
       "kind": "discover",
       "source": "https://developers.google.com/search/blog/2026/02/discover-core-update",
-      "notes": "Official dashboard name: February 2026 Discover update (started Feb 5, ~21d rollout, English/US first). Google's blog framed it as a core update to Discover (not general web Search). Rewards original/in-depth/local content; reduces sensational/clickbait."
+      "notes": "Official dashboard name: February 2026 Discover update (started Feb 5, ~21d rollout, English/US first). Google's blog framed it as a core update to Discover (not general web Search). Rewards original/in-depth/local content; reduces sensational/clickbait.",
+      "end": "2026-02-27"
     },
     {
       "date": "2026-03-24",
       "name": "March 2026 Spam Update",
       "kind": "spam",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "Fastest spam update on record — 19h30m rollout (completed under a day), days before the March 2026 core update."
+      "notes": "Fastest spam update on record — 19h30m rollout (completed under a day), days before the March 2026 core update.",
+      "end": "2026-03-25"
     },
     {
       "date": "2026-03-27",
       "name": "March 2026 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "Started Mar 27, completed Apr 8 (12-day rollout). First web-Search core update of 2026."
+      "notes": "Started Mar 27, completed Apr 8 (12-day rollout). First web-Search core update of 2026.",
+      "end": "2026-04-08"
     },
     {
       "date": "2026-04-13",
@@ -219,7 +226,8 @@
       "name": "May 2026 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/incidents/wdAXJk6LRRihEjpzEeWE",
-      "notes": "Completed June 2, 2026 (~11d21h rollout). Second core update of 2026. Global, all languages. Google: 'a regular update designed to better surface relevant, satisfying content from all types of sites.' Superseded as most-recent by the June 2026 spam update (2026-06-24); still the most recent core update as of 2026-07-02."
+      "notes": "Completed June 2, 2026 (~11d21h rollout). Second core update of 2026. Global, all languages. Google: 'a regular update designed to better surface relevant, satisfying content from all types of sites.' Superseded as most-recent by the June 2026 spam update (2026-06-24); still the most recent core update as of 2026-07-02.",
+      "end": "2026-06-02"
     },
     {
       "date": "2026-06-03",
@@ -240,7 +248,8 @@
       "name": "June 2026 Spam Update",
       "kind": "spam",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "Started June 24, completed June 26 (~2d1h rollout). Normal spam update, all languages and locations. Most recent confirmed ranking update as of 2026-07-02 (dashboard-verified)."
+      "notes": "Started June 24, completed June 26 (~2d1h rollout). Normal spam update, all languages and locations. Most recent confirmed ranking update as of 2026-07-02 (dashboard-verified).",
+      "end": "2026-06-26"
     },
     {
       "date": "2026-06-30",
@@ -248,6 +257,30 @@
       "kind": "product",
       "source": "https://support.google.com/merchants/answer/16989427",
       "notes": "Product video_link attribute becomes serving-eligible; product videos can surface in shopping experiences."
+    },
+    {
+      "date": "2025-08-26",
+      "end": "2025-09-22",
+      "name": "August 2025 Spam Update",
+      "kind": "spam",
+      "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
+      "notes": "Rolled out over 26 days 15 hours per the Search Status Dashboard."
+    },
+    {
+      "date": "2026-08-18",
+      "end": "2026-08-20",
+      "name": "August 2026 Spam Update",
+      "kind": "spam",
+      "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
+      "notes": "Rolled out over 2 days 16 hours per the Search Status Dashboard."
+    },
+    {
+      "date": "2026-09-24",
+      "end": "2026-10-08",
+      "name": "September 2026 Spam Update",
+      "kind": "spam",
+      "source": "https://status.search.google.com/incidents/XhUDXP7A67iHCD2kmbVu",
+      "notes": "Rollout complete on 8 October 2026 per the Search Status Dashboard."
     }
   ],
   "unverified": []

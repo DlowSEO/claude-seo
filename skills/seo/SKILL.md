@@ -27,7 +27,7 @@ Extensions (Firecrawl, DataForSEO, etc.) are opt-in installs and nothing ships b
 
 | Command | What it does |
 |---------|-------------|
-| `/seo audit <url>` | Full website audit with parallel subagent delegation |
+| `/seo audit <url>` | Full website audit with parallel subagent delegation. A repeat audit offers to show what has changed since the last one (`--compare latest\|none\|<pdf or folder>`) |
 | `/seo analyse <url>` | Page + technical analysis. Focus: `--focus technical\|schema\|sitemap\|images\|hreflang` |
 | `/seo content <url>` | E-E-A-T content quality analysis; `content brief <topic>` generates a brief |
 | `/seo local <url>` | Local SEO: GBP, NAP, citations, reviews, geo-grid, map pack |
@@ -46,6 +46,11 @@ status separately, and do not fall back to global or user package installation.
 For diagnosis, execute `claude-seo doctor --json`; its output intentionally omits
 absolute paths and environment values. If any `claude-seo run` command reports
 that setup is required, suggest `/seo setup` and do not improvise a `pip install`.
+
+After a successful setup, ask once: "Would you like an audit progress bar in your Claude
+Code status line? It shows the stage and percentage while an audit runs and stays empty
+otherwise." If yes, run `claude-seo run audit_progress.py install-statusline` and pass its
+message on as written. It never replaces an existing status line.
 
 ## Orchestration Logic
 

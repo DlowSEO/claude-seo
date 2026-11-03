@@ -40,6 +40,16 @@ except (ImportError, OSError) as exc:
     HTML = None
     _PDF_IMPORT_ERROR = exc
 
+try:
+    from weasyprint import Attachment
+except (ImportError, OSError):
+    Attachment = None
+
+# Audit data is embedded in full audit PDFs so a later audit can compare
+# against the PDF alone (see audit_compare.py from-pdf).
+EMBEDDED_DATA_NAME = "audit-data.json"
+REPORT_DATE_FORMAT = "%d %B %Y"
+
 
 # ─── Brand Colors ────────────────────────────────────────────────────────────
 
@@ -1194,6 +1204,118 @@ def _build_audit_action_plan(data, section_num=5):
     return "\n".join(lines)
 
 
+def _comparison_date(iso, date_format):
+    try:
+        return datetime.strptime(str(iso)[:10], "%Y-%m-%d").strftime(date_format).lstrip("0")
+    except (TypeError, ValueError):
+        return escape(str(iso or ""))
+
+
+def _build_comparison_section(data, section_num, date_format="%d %B %Y"):
+    """'What Has Changed Since the Last Audit', from audit_compare.py diff."""
+    comp = data.get("comparison")
+    if not isinstance(comp, dict):
+        return ""
+    prev = comp.get("previous") or {}
+    counts = comp.get("counts") or {}
+    prev_date = _comparison_date(prev.get("date"), date_format)
+
+    def _score(v):
+        return "n/a" if v is None else f"{float(v):g}"
+
+    def _delta(v):
+        if v is None:
+            return "", ""
+        v = float(v)
+        if v > 0:
+            return f"+{v:g}", "status-pass"
+        if v < 0:
+            return f"{v:g}", "status-fail"
+        return "No change", ""
+
+    lines = [f'\n<!-- {"=" * 55} {section_num}. CHANGES SINCE LAST AUDIT {"=" * 3} -->',
+             '<div class="section">', '  <div class="section-header">',
+             f'    <h2>{section_num}. What Has Changed Since the Last Audit</h2>', '  </div>']
+
+    hd, hcls = _delta(comp.get("health_delta"))
+    intro = f"This audit is compared with the previous audit of {prev_date}."
+    if comp.get("health_delta") is not None:
+        intro += (f" The health score has moved from {_score(prev.get('health_score'))} to "
+                  f"{_score((comp.get('current') or {}).get('health_score'))}.")
+    lines.append(f'  <p>{intro}</p>')
+
+    lines.append('  <div class="four-col">')
+    for value, label, cls in (
+        (hd or "n/a", "Health score change", hcls),
+        (counts.get("resolved", 0), "Issues resolved", "status-pass" if counts.get("resolved") else ""),
+        (counts.get("new", 0), "New issues", "status-fail" if counts.get("new") else ""),
+        (counts.get("persisting", 0), "Still open", ""),
+    ):
+        lines.append(f'    <div class="col"><div class="metric-card"><div class="value {cls}">{escape(str(value))}</div>'
+                     f'<div class="label">{label}</div></div></div>')
+    lines.append('  </div>')
+
+    cats = [c for c in comp.get("categories") or [] if isinstance(c, dict)]
+    if cats:
+        lines += [f'  <h3>{section_num}.1 Category Scores</h3>', '  <table>', '    <thead>',
+                  f'      <tr><th>Category</th><th>{prev_date}</th><th>Now</th><th>Change</th></tr>',
+                  '    </thead>', '    <tbody>']
+        for c in cats:
+            d, cls = _delta(c.get("delta"))
+            lines.append(f'      <tr><td>{escape(str(c.get("name", "")))}</td><td>{_score(c.get("previous"))}</td>'
+                         f'<td>{_score(c.get("current"))}</td><td class="{cls}">{d}</td></tr>')
+        lines += ['    </tbody>', '  </table>']
+
+    sub = 2
+    for key, heading, empty in (
+        ("resolved", "Resolved Since the Last Audit", None),
+        ("new", "New Since the Last Audit", None),
+    ):
+        items = [f for f in comp.get(key) or [] if isinstance(f, dict)]
+        if not items:
+            continue
+        lines += [f'  <h3>{section_num}.{sub} {heading}</h3>', '  <table>', '    <thead>',
+                  '      <tr><th>Issue</th><th>Category</th><th>Severity</th></tr>', '    </thead>', '    <tbody>']
+        for f in items:
+            sev = escape(str(f.get("severity", "")))
+            lines.append(f'      <tr><td>{escape(str(f.get("title", "")))}</td><td>{escape(str(f.get("category", "")))}</td>'
+                         f'<td class="{_rating_css_class(sev)}">{sev}</td></tr>')
+        lines += ['    </tbody>', '  </table>']
+        sub += 1
+
+    open_items = [f for f in comp.get("persisting") or [] if isinstance(f, dict)]
+    if open_items:
+        lines += [f'  <h3>{section_num}.{sub} Still Open</h3>', '  <table>', '    <thead>',
+                  f'      <tr><th>Issue</th><th>Severity now</th><th>Severity on {prev_date}</th></tr>',
+                  '    </thead>', '    <tbody>']
+        order = {"worse": 0, "same": 1, "better": 2}
+        for f in sorted(open_items, key=lambda f: order.get(f.get("trend"), 1)):
+            sev = escape(str(f.get("severity", "")))
+            was = escape(str(f.get("previous_severity", "")))
+            lines.append(f'      <tr><td>{escape(str(f.get("title", "")))}</td>'
+                         f'<td class="{_rating_css_class(sev)}">{sev}</td><td>{was}</td></tr>')
+        lines += ['    </tbody>', '  </table>']
+        sub += 1
+
+    updates = [u for u in comp.get("google_updates") or [] if isinstance(u, dict)]
+    if updates:
+        lines += [f'  <h3>{section_num}.{sub} Google Updates Between the Two Audits</h3>',
+                  '  <p>Google confirmed these updates between the two audits. Ranking and traffic '
+                  'movement in this period may reflect them as well as changes made to the site.</p>',
+                  '  <table>', '    <thead>', '      <tr><th>Update</th><th>Started</th><th>Finished</th></tr>',
+                  '    </thead>', '    <tbody>']
+        for u in updates:
+            lines.append(f'      <tr><td>{escape(str(u.get("name", "")))}</td>'
+                         f'<td>{_comparison_date(u.get("date"), date_format)}</td>'
+                         f'<td>{_comparison_date(u.get("end"), date_format) if u.get("end") else "Ongoing"}</td></tr>')
+        lines += ['    </tbody>', '  </table>']
+
+    for note in comp.get("notes") or []:
+        lines.append(f'  <p class="note"><em>{escape(str(note))}</em></p>')
+    lines.append('</div>')
+    return "\n".join(lines)
+
+
 def _build_executive_summary(domain, timestamp, data, report_type):
     """Build the Executive Summary section with metric cards, issues, and wins."""
     lines = []
@@ -2054,7 +2176,7 @@ def _build_methodology_footer(domain, timestamp, gsc_warning=""):
 
 # ─── Report Assemblers ───────────────────────────────────────────────────────
 
-def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
+def generate_report(report_type, data, domain, output_dir, output_format="pdf", embed_data=True):
     """
     Generate a complete professional PDF/HTML report.
 
@@ -2252,7 +2374,9 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             "Comprehensive Analysis",
             score=display_score,
             score_label="SEO Health Score" if health_score is not None else ("Lighthouse Performance Score" if perf_score else None),
-            meta_items=[timestamp, "Full Audit"],
+            meta_items=[timestamp, "Full Audit"] + (
+                [f"Compared with {_comparison_date(data['comparison'].get('previous', {}).get('date'), REPORT_DATE_FORMAT)}"]
+                if isinstance(data.get("comparison"), dict) else []),
         ))
 
         # Build TOC dynamically based on available data
@@ -2262,6 +2386,14 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             ]},
         ]
         sec_num = 2
+        has_comparison = isinstance(data.get("comparison"), dict)
+        if has_comparison:
+            toc_sections.append({
+                "num": sec_num, "title": "What Has Changed Since the Last Audit", "subs": [
+                    "Category Scores, Resolved and New Issues",
+                ],
+            })
+            sec_num += 1
         if data.get("categories"):
             toc_sections.append({
                 "num": sec_num, "title": "Audit Categories", "subs": [
@@ -2317,6 +2449,9 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         sections.append(_build_executive_summary(domain, timestamp, data, report_type))
 
         current_sec = 2
+        if has_comparison:
+            sections.append(_build_comparison_section(data, current_sec, REPORT_DATE_FORMAT))
+            current_sec += 1
         if data.get("categories"):
             sections.append(_build_full_audit_categories(data, section_num=current_sec))
             current_sec += 1
@@ -2391,7 +2526,16 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             return result
         pdf_path = output_dir / f"{base_name}.pdf"
         try:
-            HTML(string=html_content).write_pdf(str(pdf_path))
+            attachments = []
+            if (embed_data and Attachment is not None and report_type == "full"
+                    and (data.get("summary") or data.get("categories"))):
+                embedded = {k: v for k, v in data.items() if k != "comparison"}
+                attachments.append(Attachment(
+                    string=json.dumps(embedded, indent=2, ensure_ascii=False),
+                    name=EMBEDDED_DATA_NAME,
+                    description="Audit data, so a later audit can show what has changed",
+                ))
+            HTML(string=html_content).write_pdf(str(pdf_path), attachments=attachments or None)
             result["files"].append(str(pdf_path))
             # Post-generation review
             review = _review_pdf(str(pdf_path), html_content)
@@ -2663,6 +2807,10 @@ def main():
         default="pdf",
         help="Output format: pdf, html, xlsx, both (pdf+html), all (pdf+html+xlsx)",
     )
+    parser.add_argument(
+        "--no-embed-data", action="store_true",
+        help="Do not attach audit-data.json inside the PDF (it lets a later audit compare against the PDF)",
+    )
     parser.add_argument("--json", "-j", action="store_true", help="Output metadata as JSON")
 
     args = parser.parse_args()
@@ -2691,6 +2839,7 @@ def main():
         domain=args.domain,
         output_dir=args.output_dir,
         output_format=args.format,
+        embed_data=not args.no_embed_data,
     )
 
     if result.get("error"):

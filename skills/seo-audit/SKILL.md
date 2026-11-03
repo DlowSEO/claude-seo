@@ -2,7 +2,7 @@
 name: seo-audit
 description: "Full website SEO audit with parallel subagent delegation. Crawls up to 500 pages, detects business type, delegates to up to 15 specialists (8 always + 7 conditional), generates health score. Use when user says audit, full SEO check, analyze my site, or website health check."
 user-invocable: true
-argument-hint: "[url] [--mode snapshot|full]"
+argument-hint: "[url] [--mode snapshot|full] [--compare latest|none|<pdf or folder>]"
 license: MIT
 metadata:
   author: Dan Lowry
@@ -14,15 +14,50 @@ metadata:
 
 ## Process
 
-0. **Determine audit mode**: if `--mode` wasn't passed, ask the user before crawling anything:
+0. **Start the tracker and ask the setup questions together.** Before crawling:
 
-   > Do you want a **Snapshot Audit** (free-audit style: top-level findings only, output capped
-   > at 10 pages — good for a quick read on a small site) or a **Full Audit** (comprehensive
-   > crawl and findings across every category — recommended for larger or e-commerce sites)?
+   a. Start the progress tracker: `claude-seo run audit_progress.py start {domain}-audit --domain <domain>`
+      (add `--mode <mode>` once known and `--compare` if a comparison will run; calling `start`
+      again resets it). Then create a task list with the native task tool (TodoWrite or the
+      task list), one item per stage: Setup, Homepage, Crawl, Specialists, Scoring, Comparison
+      (only when comparing), Report. Mark each item in progress and completed as you go, so the
+      person can see the audit moving in the chat. See Progress Tracking below.
+   b. Check for an earlier audit of this site: `claude-seo run audit_compare.py find {domain}-audit --ids --json`.
+   c. Ask everything in **one** message, then wait for the answer. Skip any question whose
+      answer was passed as a flag (`--mode`, `--compare`).
 
-   Don't guess from site size alone; a small site owner may still want the full depth, and a
-   large e-commerce owner may want a snapshot first. See Audit Modes below for what each
-   changes.
+   > **1. Audit depth.** A **Snapshot Audit** (top-level findings only, report capped at 10
+   > pages, good for a quick read on a small site) or a **Full Audit** (comprehensive crawl and
+   > findings across every category, recommended for larger or e-commerce sites)?
+   >
+   > **2. Comparison** (only if `find` returned an earlier audit): This site was audited on
+   > {date} (health score {score}). Should this report show what has changed since then?
+   > (Recommended: yes.)
+   >
+   > If `find` returned nothing, add one line instead of question 2: "If this site has been
+   > audited before, share the earlier PDF report or its audit folder and the report will
+   > show what has changed. Otherwise this will be treated as the first audit."
+
+   Don't guess the mode from site size alone; a small site owner may still want the full
+   depth, and a large e-commerce owner may want a snapshot first. See Audit Modes below for
+   what each changes. If several earlier audits exist, offer the most recent and mention
+   the others by date.
+
+   d. **If comparing**, prepare the baseline before any new output is written:
+      - Earlier audit in this folder: `claude-seo run audit_compare.py archive {domain}-audit --json`
+        and use the returned `path` as the baseline.
+      - A PDF the person shared: `claude-seo run audit_compare.py from-pdf <file.pdf> --out {domain}-audit/history/baseline-<date>/audit-data.json --json`.
+        `method: embedded` is exact (PDFs made by `google_report.py` carry their own data). `method: text` is
+        approximate: read the PDF yourself, check the health score, category scores and
+        finding titles in the baseline file, and correct them before continuing.
+      - A folder the person shared: use its `audit-data.json` as the baseline.
+      - Refresh Google's update log so the comparison can name updates between the two
+        audits: `claude-seo run seo_updates.py --refresh-if-stale 7 --json`. If it cannot
+        connect, carry on; the bundled log is used.
+      - Give the specialists the earlier findings list from step b (or the baseline file) and
+        tell them: reuse the earlier finding's `id` when reporting the same issue, and give
+        every new finding a short kebab-case `id` describing the issue type
+        (`missing-meta-description`, `noindex-key-pages`). Stable ids make the comparison exact.
 
 1. **Render homepage**: use `claude-seo run render_page.py <url> --mode auto --json` to capture raw HTML, rendered HTML, extracted text, SPA status, and accessibility data when needed
 2. **Detect business type**: analyze homepage signals per seo orchestrator
@@ -42,8 +77,41 @@ metadata:
    `/seo strategy` instead.
 
 5. **Score** -- aggregate into SEO Health Score (0-100)
-6. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`
-7. **Report** -- generate prioritized action plan and optional PDF/HTML report
+6. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`. Set
+   `meta.audited_at` (today, ISO date) and `meta.mode` in `audit-data.json`, and give every
+   finding an `id` (see step 0d).
+7. **Compare** (only when comparing) -- run
+   `claude-seo run audit_compare.py diff <baseline audit-data.json> {domain}-audit/audit-data.json --markdown {domain}-audit/CHANGES.md --domain <domain> --json`.
+   This adds a `comparison` block to `audit-data.json`, which the PDF renders as "What Has
+   Changed Since the Last Audit". Check every pair in `review_matches`: if two titles are
+   not the same issue, give the current finding a new `id` and run `diff` again. Open
+   `FULL-AUDIT-REPORT.md` with a short "Since the last audit" paragraph: the score change,
+   what was resolved, what is new, and any Google update that rolled out in between
+   (`comparison.google_updates`), without claiming the update caused a change.
+8. **Report** -- generate prioritized action plan and optional PDF/HTML report
+
+## Progress Tracking
+
+Long audits need a visible sign of progress. The task list in the chat (step 0) works in the
+terminal, the VS Code panel and the desktop app; update it at every stage change. The progress
+file drives the optional status line bar under the prompt. Update it with one call per stage,
+passing `--detail` with a few words at most. `...` below stands for
+`claude-seo run audit_progress.py`.
+
+| When | Command |
+|---|---|
+| Homepage render starts | `... stage {domain}-audit render` |
+| Crawl starts / finishes | `... stage {domain}-audit crawl` / `... --status done --detail "142 pages"` |
+| Specialists spawned | `... stage {domain}-audit specialists --done 0 --total <n>` |
+| Each specialist returns | `... stage {domain}-audit specialists --done <k> --total <n>` |
+| Scoring | `... stage {domain}-audit score` |
+| Comparison | `... stage {domain}-audit compare` |
+| Report writing | `... stage {domain}-audit report` |
+| Finished | `... finish {domain}-audit --score <health score>` |
+
+The person can add the bar to their Claude Code status line during `/seo setup` (see the `seo` skill).
+
+If a progress call fails, carry on with the audit; tracking never blocks the work.
 
 ## Audit Modes
 
@@ -78,9 +146,11 @@ Delay between requests: 1 second
 - `{domain}-audit/FULL-AUDIT-REPORT.md`: Comprehensive findings (Full Audit) or a 10-page-max condensed summary (Snapshot Audit, see Audit Modes)
 - `{domain}-audit/ACTION-PLAN.md`: Prioritized recommendations (Critical > High > Medium > Low)
 - `{domain}-audit/audit-data.json`: Structured audit envelope for report generation
+- `{domain}-audit/CHANGES.md`: What has changed since the previous audit (only when comparing)
+- `{domain}-audit/history/<date>/`: Earlier audits kept for comparison
 - `{domain}-audit/findings/*.md`: Per-category specialist findings (`technical.md`, `content.md`, `schema.md`, `performance.md`, `visual.md`, etc.)
 - `{domain}-audit/screenshots/`: Desktop + mobile captures (if Playwright available)
-- **PDF Report** (recommended): Generate a professional A4 PDF using `claude-seo run google_report.py --type full --data {domain}-audit/audit-data.json --domain <domain> --output-dir {domain}-audit/`. This produces a white-cover enterprise report with TOC, executive summary, charts (Lighthouse gauges, query bars, index donut), metric cards, threshold tables, prioritized recommendations with effort estimates, and implementation roadmap. Always offer PDF generation after completing an audit. Client-facing PDFs must use the Ad Rank One Design System (see below).
+- **PDF Report** (recommended): Generate a professional A4 PDF using `claude-seo run google_report.py --type full --data {domain}-audit/audit-data.json --domain <domain> --output-dir {domain}-audit/`. This produces a white-cover enterprise report with TOC, executive summary, charts (Lighthouse gauges, query bars, index donut), metric cards, threshold tables, prioritized recommendations with effort estimates, and implementation roadmap. The PDF carries a copy of `audit-data.json` inside it, so a later audit can compare against the PDF alone; add `--no-embed-data` only if asked. Always offer PDF generation after completing an audit. Client-facing PDFs must use the Ad Rank One Design System (see below).
 
 ## Report Design: Ad Rank One Design System (required)
 
@@ -121,6 +191,10 @@ Write `{domain}-audit/audit-data.json` with this shape so `claude-seo run google
 
 ```json
 {
+  "meta": {
+    "audited_at": "YYYY-MM-DD",
+    "mode": "full|snapshot"
+  },
   "summary": {
     "health_score": 0,
     "business_type": "detected type",
@@ -134,6 +208,7 @@ Write `{domain}-audit/audit-data.json` with this shape so `claude-seo run google
       "what_works": [],
       "findings": [
         {
+          "id": "short-kebab-case-issue-type",
           "title": "Finding title",
           "severity": "Critical|High|Medium|Low|Info",
           "description": "Evidence-backed detail",

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Audit comparison. A repeat `/seo audit` finds the earlier audit of the same site and asks
+  whether to show what has changed; a first audit can compare against an earlier PDF report.
+  `CHANGES.md` and a "What Has Changed Since the Last Audit" PDF section list score and category
+  changes, resolved, new and still-open issues, and Google updates that rolled out in between.
+  `--compare latest|none|<pdf or folder>`; `scripts/audit_compare.py`.
+- Full audit PDFs embed their `audit-data.json` (`--no-embed-data` turns this off).
+- Audit progress: stage task list in the chat and an optional Claude Code status line bar
+  (`scripts/audit_progress.py`, offered during `/seo setup`).
+- `seo_updates.py --refresh`, `--refresh-if-stale DAYS` and `--between START END`, reading
+  Google's Search Status Dashboard feed into `~/.config/claude-seo/google-updates-live.json`.
+  Bundled log adds the August 2025, August 2026 and September 2026 spam updates.
+- `pypdf` added to the requirements.
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.
